@@ -25,41 +25,41 @@ Deploy, manage, and execute n8n workflows via the REST API. Use this for schedul
 
 ## Execution Tool
 
-**Location:** `modules/n8n/tool/n8n_api.py`
+**Location:** `tool/n8n_api.py`
 
 ### CLI Commands
 
 ```bash
 # List all workflows
-./run modules/n8n/tool/n8n_api.py list
+./run tool/n8n_api.py list
 
 # Get workflow JSON (for inspection/debugging)
-./run modules/n8n/tool/n8n_api.py get <workflow_id>
+./run tool/n8n_api.py get <workflow_id>
 
 # Get workflow info (triggers, webhook URLs)
-./run modules/n8n/tool/n8n_api.py info <workflow_id>
+./run tool/n8n_api.py info <workflow_id>
 
 # Deploy new workflow from local file
-./run modules/n8n/tool/n8n_api.py create workflows/my_workflow.json
+./run tool/n8n_api.py create workflows/my_workflow.json
 
 # Update existing workflow
-./run modules/n8n/tool/n8n_api.py update <workflow_id> workflows/my_workflow.json
+./run tool/n8n_api.py update <workflow_id> workflows/my_workflow.json
 
 # Activate/deactivate workflow
-./run modules/n8n/tool/n8n_api.py activate <workflow_id>
-./run modules/n8n/tool/n8n_api.py deactivate <workflow_id>
+./run tool/n8n_api.py activate <workflow_id>
+./run tool/n8n_api.py deactivate <workflow_id>
 
 # Execute workflow via webhook (requires webhook trigger + active workflow)
-./run modules/n8n/tool/n8n_api.py execute <workflow_id> [input_json]
+./run tool/n8n_api.py execute <workflow_id> [input_json]
 
 # View execution history
-./run modules/n8n/tool/n8n_api.py executions <workflow_id>
+./run tool/n8n_api.py executions <workflow_id>
 
 # Export workflow to local file
-./run modules/n8n/tool/n8n_api.py export <workflow_id> workflows/exported_workflow.json
+./run tool/n8n_api.py export <workflow_id> workflows/exported_workflow.json
 
 # Delete workflow (with confirmation)
-./run modules/n8n/tool/n8n_api.py delete <workflow_id>
+./run tool/n8n_api.py delete <workflow_id>
 ```
 
 ### Module Usage
@@ -90,16 +90,16 @@ info = client.test_workflow("workflow_id")
 ### Creating a New Workflow
 
 1. **Design in n8n UI** - Build and test the workflow visually
-2. **Export to local** - `./run modules/n8n/tool/n8n_api.py export <id> workflows/<name>.json`
+2. **Export to local** - `./run tool/n8n_api.py export <id> workflows/<name>.json`
 3. **Version control** - Commit the JSON to the `workflows/` directory
 4. **Document** - Add notes about special requirements
 
 ### Updating an Existing Workflow
 
 1. **Edit in n8n UI** or modify the JSON directly
-2. **Deploy** - `./run modules/n8n/tool/n8n_api.py update <id> workflows/<name>.json`
+2. **Deploy** - `./run tool/n8n_api.py update <id> workflows/<name>.json`
 3. **Test** - Use the n8n UI or call the webhook if available
-4. **Check results** - `./run modules/n8n/tool/n8n_api.py executions <id>`
+4. **Check results** - `./run tool/n8n_api.py executions <id>`
 
 ## Environment Variables
 

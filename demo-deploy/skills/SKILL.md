@@ -28,22 +28,22 @@ Deploy demo applications to Dokploy with GitHub integration and Traefik routing.
 
 ```bash
 # List existing demos
-./run modules/demo-deploy/tool/demo_deploy.py list
+./run tool/demo_deploy.py list
 
 # List projects and environments
-./run modules/demo-deploy/tool/demo_deploy.py projects
+./run tool/demo_deploy.py projects
 
 # Create new project/environment
-./run modules/demo-deploy/tool/demo_deploy.py create-env --project-name <name>
+./run tool/demo_deploy.py create-env --project-name <name>
 
 # Check if subdomain is available
-./run modules/demo-deploy/tool/demo_deploy.py check <slug>
+./run tool/demo_deploy.py check <slug>
 
 # Validate compose file
-./run modules/demo-deploy/tool/demo_deploy.py validate [docker-compose.yml]
+./run tool/demo_deploy.py validate [docker-compose.yml]
 
 # Deploy new demo
-./run modules/demo-deploy/tool/demo_deploy.py deploy \
+./run tool/demo_deploy.py deploy \
   --environment <env-id> \
   --name <name> \
   --repo <owner/repo> \
@@ -52,19 +52,19 @@ Deploy demo applications to Dokploy with GitHub integration and Traefik routing.
   --service <service-name>
 
 # Redeploy existing demo
-./run modules/demo-deploy/tool/demo_deploy.py redeploy <name-or-id>
+./run tool/demo_deploy.py redeploy <name-or-id>
 
 # Delete a demo (with safety checks)
-./run modules/demo-deploy/tool/demo_deploy.py delete <name-or-id>
+./run tool/demo_deploy.py delete <name-or-id>
 
 # Manage environment variables
-./run modules/demo-deploy/tool/demo_deploy.py env <name> --show
-./run modules/demo-deploy/tool/demo_deploy.py env <name> --file .env
-./run modules/demo-deploy/tool/demo_deploy.py env <name> --set KEY=value
+./run tool/demo_deploy.py env <name> --show
+./run tool/demo_deploy.py env <name> --file .env
+./run tool/demo_deploy.py env <name> --set KEY=value
 
 # Debug GitHub provider access
-./run modules/demo-deploy/tool/demo_deploy.py github-debug --list-repos
-./run modules/demo-deploy/tool/demo_deploy.py github-debug --list-repos --check-repo owner/repo
+./run tool/demo_deploy.py github-debug --list-repos
+./run tool/demo_deploy.py github-debug --list-repos --check-repo owner/repo
 ```
 
 ---
@@ -79,7 +79,7 @@ Deploy demo applications to Dokploy with GitHub integration and Traefik routing.
 
 If yes, run:
 ```bash
-./run modules/demo-deploy/tool/demo_deploy.py list
+./run tool/demo_deploy.py list
 ```
 
 Present the list and ask:
@@ -106,7 +106,7 @@ Record the repository in `owner/repo` format.
 
 **List available environments:**
 ```bash
-./run modules/demo-deploy/tool/demo_deploy.py projects
+./run tool/demo_deploy.py projects
 ```
 
 **Ask the user:** "Which environment should this demo be deployed to?"
@@ -117,7 +117,7 @@ Options:
 
 If creating new:
 ```bash
-./run modules/demo-deploy/tool/demo_deploy.py create-env --project-name "<client>-demos"
+./run tool/demo_deploy.py create-env --project-name "<client>-demos"
 ```
 
 This creates a project with a default "production" environment and returns the environment ID.
@@ -129,7 +129,7 @@ This creates a project with a default "production" environment and returns the e
 
 **Check availability:**
 ```bash
-./run modules/demo-deploy/tool/demo_deploy.py check <slug>
+./run tool/demo_deploy.py check <slug>
 ```
 
 If not available, suggest alternatives or ask user for a different slug.
@@ -151,7 +151,7 @@ Common defaults:
 
 **Run validation:**
 ```bash
-./run modules/demo-deploy/tool/demo_deploy.py validate ./docker-compose.yml
+./run tool/demo_deploy.py validate ./docker-compose.yml
 ```
 
 If validation fails:
@@ -184,7 +184,7 @@ git push -u origin main
 #### 2.2 Deploy to Dokploy
 
 ```bash
-./run modules/demo-deploy/tool/demo_deploy.py deploy \
+./run tool/demo_deploy.py deploy \
   --environment "<environment-id>" \
   --name "<demo-name>" \
   --repo "<owner/repo>" \
@@ -226,13 +226,13 @@ If the app needs environment variables:
 
 ```bash
 # View current env vars
-./run modules/demo-deploy/tool/demo_deploy.py env <name> --show
+./run tool/demo_deploy.py env <name> --show
 
 # Push from .env file (will redeploy automatically)
-./run modules/demo-deploy/tool/demo_deploy.py env <name> --file .env
+./run tool/demo_deploy.py env <name> --file .env
 
 # Set a single variable
-./run modules/demo-deploy/tool/demo_deploy.py env <name> --set DATABASE_URL=postgres://...
+./run tool/demo_deploy.py env <name> --set DATABASE_URL=postgres://...
 ```
 
 **How it works:**
@@ -289,7 +289,7 @@ After deploying, verify:
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| 404 | Domain not added or needs redeploy | Redeploy: `./run modules/demo-deploy/tool/demo_deploy.py redeploy <name>` |
+| 404 | Domain not added or needs redeploy | Redeploy: `./run tool/demo_deploy.py redeploy <name>` |
 | 502 | Can't reach database (`getaddrinfo EAI_AGAIN`) | Use dual-network pattern: app on both networks, db on internal only |
 | 301 loop | HTTPS enabled in Dokploy | Go to Dokploy UI → Domain → Set HTTPS to OFF |
 | 504 | Traefik not on dokploy-network | SSH to server: `docker network connect dokploy-network dokploy-traefik` |
@@ -398,13 +398,13 @@ Use the diagnostic command to verify GitHub provider access:
 
 ```bash
 # Basic diagnostics
-./run modules/demo-deploy/tool/demo_deploy.py github-debug
+./run tool/demo_deploy.py github-debug
 
 # List accessible repositories
-./run modules/demo-deploy/tool/demo_deploy.py github-debug --list-repos
+./run tool/demo_deploy.py github-debug --list-repos
 
 # Check if specific repo is accessible
-./run modules/demo-deploy/tool/demo_deploy.py github-debug --list-repos --check-repo owner/repo
+./run tool/demo_deploy.py github-debug --list-repos --check-repo owner/repo
 ```
 
 If the repo appears in the list with `(private)`, the GitHub App has access. If it doesn't appear, see solutions above.

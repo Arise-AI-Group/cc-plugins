@@ -77,19 +77,19 @@ All commands use `user@host[:port]` format:
 
 ## Execution Tool
 
-**Location:** `modules/ssh/tool/ssh_client.py`
+**Location:** `tool/ssh_client.py`
 
 ### CLI Commands
 
 ```bash
 # Execute command
-./run modules/ssh/tool/ssh_client.py exec user@host "command"
+./run tool/ssh_client.py exec user@host "command"
 
 # Upload file or directory
-./run modules/ssh/tool/ssh_client.py upload user@host local_path remote_path
+./run tool/ssh_client.py upload user@host local_path remote_path
 
 # Download file or directory
-./run modules/ssh/tool/ssh_client.py download user@host remote_path local_path
+./run tool/ssh_client.py download user@host remote_path local_path
 ```
 
 ### Module Usage
@@ -117,42 +117,42 @@ client.download("root@server", "/var/log/app.log", "./logs/app.log")
 
 ```bash
 # Update packages
-./run modules/ssh/tool/ssh_client.py exec root@server "apt update && apt upgrade -y"
+./run tool/ssh_client.py exec root@server "apt update && apt upgrade -y"
 
 # Install packages
-./run modules/ssh/tool/ssh_client.py exec root@server "apt install -y nginx docker.io"
+./run tool/ssh_client.py exec root@server "apt install -y nginx docker.io"
 
 # Check disk space
-./run modules/ssh/tool/ssh_client.py exec root@server "df -h"
+./run tool/ssh_client.py exec root@server "df -h"
 
 # Check running services
-./run modules/ssh/tool/ssh_client.py exec root@server "systemctl list-units --type=service --state=running"
+./run tool/ssh_client.py exec root@server "systemctl list-units --type=service --state=running"
 ```
 
 ### File Operations
 
 ```bash
 # Upload config file
-./run modules/ssh/tool/ssh_client.py upload root@server ./nginx.conf /etc/nginx/nginx.conf
+./run tool/ssh_client.py upload root@server ./nginx.conf /etc/nginx/nginx.conf
 
 # Download logs
-./run modules/ssh/tool/ssh_client.py download root@server /var/log/nginx/ ./nginx-logs/
+./run tool/ssh_client.py download root@server /var/log/nginx/ ./nginx-logs/
 
 # Backup directory
-./run modules/ssh/tool/ssh_client.py download root@server /etc/app/ ./backup/app-config/
+./run tool/ssh_client.py download root@server /etc/app/ ./backup/app-config/
 ```
 
 ### Service Management
 
 ```bash
 # Restart service
-./run modules/ssh/tool/ssh_client.py exec root@server "systemctl restart nginx"
+./run tool/ssh_client.py exec root@server "systemctl restart nginx"
 
 # Check service status
-./run modules/ssh/tool/ssh_client.py exec root@server "systemctl status nginx"
+./run tool/ssh_client.py exec root@server "systemctl status nginx"
 
 # View logs
-./run modules/ssh/tool/ssh_client.py exec root@server "journalctl -u nginx --since '1 hour ago'"
+./run tool/ssh_client.py exec root@server "journalctl -u nginx --since '1 hour ago'"
 ```
 
 ## Edge Cases & Learnings
@@ -175,7 +175,7 @@ For very large files or directories, consider:
 This module does **not** support interactive commands (sudo prompts, vim, etc.). For sudo, use:
 ```bash
 # Configure NOPASSWD in sudoers, or
-./run modules/ssh/tool/ssh_client.py exec user@server "echo 'password' | sudo -S command"
+./run tool/ssh_client.py exec user@server "echo 'password' | sudo -S command"
 ```
 
 ### Connection Timeouts

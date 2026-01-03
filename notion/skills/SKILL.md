@@ -6,7 +6,7 @@ description: Notion page, database, and block management - create pages, query d
 # Notion Management
 
 ## Execution Method
-**Always use Python**: `modules/notion/tool/notion_api.py`
+**Always use Python**: `tool/notion_api.py`
 
 ## Purpose
 Manage Notion pages, databases, and content blocks via the API. Use this for
@@ -27,7 +27,7 @@ and workspace search.
 
 ## Execution Tools
 
-**Location:** `modules/notion/tool/notion_api.py`
+**Location:** `tool/notion_api.py`
 
 ---
 
@@ -35,38 +35,38 @@ and workspace search.
 
 ### Get Page
 ```bash
-./run modules/notion/tool/notion_api.py pages get <page_id>
+./run tool/notion_api.py pages get <page_id>
 ```
 
 ### Create Page
 ```bash
 # Create page under another page
-./run modules/notion/tool/notion_api.py pages create <parent_page_id> \
+./run tool/notion_api.py pages create <parent_page_id> \
   --title "New Page Title" \
   --content "# Heading\n\nParagraph content" \
   --icon "📄"
 
 # Create page in a database
-./run modules/notion/tool/notion_api.py pages create <database_id> \
+./run tool/notion_api.py pages create <database_id> \
   --title "New Entry" \
   --database
 
 # Create from markdown file
-./run modules/notion/tool/notion_api.py pages create <parent_id> \
+./run tool/notion_api.py pages create <parent_id> \
   --title "Documentation" \
   --content-file .tmp/content.md
 ```
 
 ### Update Page
 ```bash
-./run modules/notion/tool/notion_api.py pages update <page_id> --title "New Title"
-./run modules/notion/tool/notion_api.py pages update <page_id> --icon "✅"
+./run tool/notion_api.py pages update <page_id> --title "New Title"
+./run tool/notion_api.py pages update <page_id> --icon "✅"
 ```
 
 ### Archive/Restore
 ```bash
-./run modules/notion/tool/notion_api.py pages archive <page_id>
-./run modules/notion/tool/notion_api.py pages restore <page_id>
+./run tool/notion_api.py pages archive <page_id>
+./run tool/notion_api.py pages restore <page_id>
 ```
 
 ---
@@ -76,28 +76,28 @@ and workspace search.
 ### Query Database
 ```bash
 # Get entries (default: 100)
-./run modules/notion/tool/notion_api.py databases query <database_id>
+./run tool/notion_api.py databases query <database_id>
 
 # Get ALL entries (paginated)
-./run modules/notion/tool/notion_api.py databases query <database_id> --all
+./run tool/notion_api.py databases query <database_id> --all
 
 # With filter
-./run modules/notion/tool/notion_api.py databases query <database_id> \
+./run tool/notion_api.py databases query <database_id> \
   --filter '{"property": "Status", "select": {"equals": "Active"}}'
 
 # With sorting
-./run modules/notion/tool/notion_api.py databases query <database_id> \
+./run tool/notion_api.py databases query <database_id> \
   --sorts '[{"property": "Created", "direction": "descending"}]'
 ```
 
 ### Get Database Schema
 ```bash
-./run modules/notion/tool/notion_api.py databases get <database_id>
+./run tool/notion_api.py databases get <database_id>
 ```
 
 ### Create Database
 ```bash
-./run modules/notion/tool/notion_api.py databases create <parent_page_id> \
+./run tool/notion_api.py databases create <parent_page_id> \
   --title "Project Tracker" \
   --properties '{
     "Name": {"title": {}},
@@ -113,33 +113,33 @@ and workspace search.
 ### Get Page Content
 ```bash
 # Get as JSON
-./run modules/notion/tool/notion_api.py blocks children <page_id>
+./run tool/notion_api.py blocks children <page_id>
 
 # Get ALL blocks (paginated)
-./run modules/notion/tool/notion_api.py blocks children <page_id> --all
+./run tool/notion_api.py blocks children <page_id> --all
 
 # Get as markdown
-./run modules/notion/tool/notion_api.py blocks children <page_id> --as-markdown
+./run tool/notion_api.py blocks children <page_id> --as-markdown
 ```
 
 ### Append Content
 ```bash
 # Append markdown
-./run modules/notion/tool/notion_api.py blocks append <page_id> \
+./run tool/notion_api.py blocks append <page_id> \
   --content "## New Section\n\nAdded paragraph."
 
 # Append from file
-./run modules/notion/tool/notion_api.py blocks append <page_id> \
+./run tool/notion_api.py blocks append <page_id> \
   --content-file .tmp/additional_content.md
 
 # Append raw JSON blocks
-./run modules/notion/tool/notion_api.py blocks append <page_id> \
+./run tool/notion_api.py blocks append <page_id> \
   --json '[{"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": "Hello"}}]}}]'
 ```
 
 ### Delete Block
 ```bash
-./run modules/notion/tool/notion_api.py blocks delete <block_id>
+./run tool/notion_api.py blocks delete <block_id>
 ```
 
 ---
@@ -148,16 +148,16 @@ and workspace search.
 
 ```bash
 # Search everything
-./run modules/notion/tool/notion_api.py search "project documentation"
+./run tool/notion_api.py search "project documentation"
 
 # Search only pages
-./run modules/notion/tool/notion_api.py search "meeting notes" --filter page
+./run tool/notion_api.py search "meeting notes" --filter page
 
 # Search only databases
-./run modules/notion/tool/notion_api.py search "tracker" --filter database
+./run tool/notion_api.py search "tracker" --filter database
 
 # Limit results
-./run modules/notion/tool/notion_api.py search "notes" --limit 10
+./run tool/notion_api.py search "notes" --limit 10
 ```
 
 ---
@@ -166,13 +166,13 @@ and workspace search.
 
 ```bash
 # List all users
-./run modules/notion/tool/notion_api.py users list
+./run tool/notion_api.py users list
 
 # Get bot info
-./run modules/notion/tool/notion_api.py users me
+./run tool/notion_api.py users me
 
 # Get specific user
-./run modules/notion/tool/notion_api.py users get <user_id>
+./run tool/notion_api.py users get <user_id>
 ```
 
 ---
@@ -301,7 +301,7 @@ The `markdown_to_blocks()` helper supports:
 ### Create Documentation Page
 ```bash
 # Create page with initial content
-./run modules/notion/tool/notion_api.py pages create <docs-page-id> \
+./run tool/notion_api.py pages create <docs-page-id> \
   --title "API Documentation" \
   --content-file docs/api.md \
   --icon "📚"
@@ -309,20 +309,20 @@ The `markdown_to_blocks()` helper supports:
 
 ### Export Page to Markdown
 ```bash
-./run modules/notion/tool/notion_api.py blocks children <page-id> --all --as-markdown > .tmp/export.md
+./run tool/notion_api.py blocks children <page-id> --all --as-markdown > .tmp/export.md
 ```
 
 ### Bulk Query Database
 ```bash
 # Get all entries with specific status
-./run modules/notion/tool/notion_api.py databases query <db-id> --all \
+./run tool/notion_api.py databases query <db-id> --all \
   --filter '{"property": "Status", "select": {"equals": "Done"}}'
 ```
 
 ### Add Entry to Database
 ```bash
 # Create page in database
-./run modules/notion/tool/notion_api.py pages create <database-id> \
+./run tool/notion_api.py pages create <database-id> \
   --title "New Task" \
   --database
 ```
@@ -396,5 +396,5 @@ The `markdown_to_blocks()` helper supports:
   not just `{"page_id": "..."}`. This was causing "body.parent.type should be defined"
   errors when creating databases via CLI.
 - **Added:** `databases update` CLI command to update database title and properties.
-  Usage: `./run modules/notion/tool/notion_api.py databases update <db_id> --properties '{...}'`
+  Usage: `./run tool/notion_api.py databases update <db_id> --properties '{...}'`
 

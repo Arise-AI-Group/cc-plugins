@@ -65,18 +65,18 @@ Container (by hostname match)
 
 **DNS Management:**
 ```bash
-./run tools/cloudflare_api.py zones list
-./run tools/cloudflare_api.py dns list example.com
-./run tools/cloudflare_api.py dns create example.com <subdomain> <tunnel-id>.cfargotunnel.com --proxied
-./run tools/cloudflare_api.py dns delete example.com <record-id>
+./run tool/cloudflare_api.py zones list
+./run tool/cloudflare_api.py dns list example.com
+./run tool/cloudflare_api.py dns create example.com <subdomain> <tunnel-id>.cfargotunnel.com --proxied
+./run tool/cloudflare_api.py dns delete example.com <record-id>
 ```
 
 **Tunnel Management:**
 ```bash
-./run tools/cloudflare_api.py tunnel list
-./run tools/cloudflare_api.py tunnel config <tunnel-id>
-./run tools/cloudflare_api.py tunnel route-add <tunnel-id> <hostname> http://localhost:<port>
-./run tools/cloudflare_api.py tunnel route-remove <tunnel-id> <hostname>
+./run tool/cloudflare_api.py tunnel list
+./run tool/cloudflare_api.py tunnel config <tunnel-id>
+./run tool/cloudflare_api.py tunnel route-add <tunnel-id> <hostname> http://localhost:<port>
+./run tool/cloudflare_api.py tunnel route-remove <tunnel-id> <hostname>
 ```
 
 ### Dokploy API (`tool/dokploy_api.py`)
@@ -203,7 +203,7 @@ For services that need direct port access (bypassing Traefik):
 1. **Choose a unique port** (next available in sequence)
 2. **Add tunnel route:**
    ```bash
-   ./run tools/cloudflare_api.py tunnel route-add <tunnel-id> <initials>-n8n.arisegroup-tools.com http://localhost:<port>
+   ./run tool/cloudflare_api.py tunnel route-add <tunnel-id> <initials>-n8n.arisegroup-tools.com http://localhost:<port>
    ```
 3. **Create compose in DokPloy** with host port mapping
 4. **Deploy and verify**
@@ -216,7 +216,7 @@ For services that need direct port access (bypassing Traefik):
 
 **Direct-routed (legacy):**
 1. Stop and delete compose in Dokploy
-2. Remove tunnel route: `./run tools/cloudflare_api.py tunnel route-remove <tunnel_id> <hostname>`
+2. Remove tunnel route: `./run tool/cloudflare_api.py tunnel route-remove <tunnel_id> <hostname>`
 
 ### Deployment Checklist
 
@@ -588,7 +588,7 @@ For bulk operations from n8n or other services on the same Dokploy server.
 
 ### View/Manage via CLI
 ```bash
-./run modules/infrastructure/tool/dokploy_api.py compose get NMv-4GR1dXZb9PTcTyqhd -v
+./run tool/dokploy_api.py compose get NMv-4GR1dXZb9PTcTyqhd -v
 ```
 
 ---
