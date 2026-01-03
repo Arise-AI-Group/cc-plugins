@@ -1,0 +1,8 @@
+{
+  "name": "md-export",
+  "description": "Export markdown to Google Docs and Word documents with Mermaid diagram rendering",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}

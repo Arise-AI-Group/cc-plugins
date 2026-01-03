@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import os; exit(0 if all([os.getenv(\"OPENAI_API_KEY\")]) else 1)\""
+          }
+        ]
+      }
+    ]
+  }
+}

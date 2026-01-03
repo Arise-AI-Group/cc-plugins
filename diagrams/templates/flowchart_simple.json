@@ -1,0 +1,19 @@
+{
+  "type": "flowchart",
+  "title": "Simple Flowchart",
+  "direction": "TD",
+  "nodes": [
+    {"id": "start", "label": "Start", "shape": "ellipse"},
+    {"id": "process1", "label": "Process Step 1", "shape": "rectangle"},
+    {"id": "decision", "label": "Decision?", "shape": "diamond"},
+    {"id": "process2", "label": "Process Step 2", "shape": "rectangle"},
+    {"id": "end", "label": "End", "shape": "ellipse"}
+  ],
+  "connections": [
+    {"from": "start", "to": "process1"},
+    {"from": "process1", "to": "decision"},
+    {"from": "decision", "to": "process2", "label": "Yes"},
+    {"from": "decision", "to": "end", "label": "No"},
+    {"from": "process2", "to": "end"}
+  ]
+}

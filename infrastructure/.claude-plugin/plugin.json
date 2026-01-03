@@ -1,0 +1,8 @@
+{
+  "name": "infrastructure",
+  "description": "Manage team infrastructure with Cloudflare DNS/tunnels and Dokploy containers",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}

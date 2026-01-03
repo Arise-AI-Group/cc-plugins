@@ -1,0 +1,8 @@
+{
+  "name": "n8n",
+  "description": "Manage n8n workflows - list, deploy, activate, execute, and monitor",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}

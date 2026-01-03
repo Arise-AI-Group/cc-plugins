@@ -1,0 +1,11 @@
+#!/bin/bash
+# Activate virtual environment and run Python script
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ ! -d "$SCRIPT_DIR/.venv" ]; then
+    echo "Virtual environment not found. Run ./setup.sh first."
+    exit 1
+fi
+
+source "$SCRIPT_DIR/.venv/bin/activate"
+python3 "$@"

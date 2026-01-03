@@ -1,0 +1,30 @@
+# Virtual environments
+.venv/
+*/.venv/
+
+# Environment files (contain secrets)
+.env
+*/.env
+SECRETS.md
+*/SECRETS.md
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files
+.tmp/
+*/.tmp/

@@ -1,0 +1,21 @@
+{
+  "type": "flowchart",
+  "title": "Test Diagram",
+  "direction": "TD",
+  "groups": [
+    {"id": "phase1", "label": "Phase 1"},
+    {"id": "phase2", "label": "Phase 2"}
+  ],
+  "nodes": [
+    {"id": "start", "label": "Start", "group": "phase1", "shape": "ellipse"},
+    {"id": "process", "label": "Process Data", "group": "phase1", "shape": "rectangle"},
+    {"id": "decision", "label": "Valid?", "group": "phase2", "shape": "diamond"},
+    {"id": "end", "label": "End", "group": "phase2", "shape": "ellipse"}
+  ],
+  "connections": [
+    {"from": "start", "to": "process", "label": "Begin"},
+    {"from": "process", "to": "decision"},
+    {"from": "decision", "to": "end", "label": "Yes", "style": "solid"},
+    {"from": "decision", "to": "process", "label": "No", "style": "dashed"}
+  ]
+}

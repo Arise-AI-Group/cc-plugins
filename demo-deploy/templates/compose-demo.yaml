@@ -1,0 +1,32 @@
+# Demo Compose Template
+# Standard template for demo deployments with Traefik routing
+#
+# Usage:
+# 1. Copy this file to your project as docker-compose.yml
+# 2. Replace 'app' with your service name
+# 3. Update build context or image as needed
+# 4. Add environment variables
+# 5. Validate: ./run modules/demo-deploy/tool/demo_deploy.py validate
+
+services:
+  app:
+    build: .
+    # OR use a pre-built image:
+    # image: your-registry/your-image:latest
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    environment:
+      - NODE_ENV=production
+      # Add your environment variables here
+      # - DATABASE_URL=${DATABASE_URL}
+      # - API_KEY=${API_KEY}
+    # volumes:
+    #   - app_data:/app/data
+
+networks:
+  dokploy-network:
+    external: true
+
+# volumes:
+#   app_data:

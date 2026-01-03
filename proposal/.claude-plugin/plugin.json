@@ -1,0 +1,8 @@
+{
+  "name": "proposal",
+  "description": "Generate sales proposals and create Google Slides presentations from templates",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}

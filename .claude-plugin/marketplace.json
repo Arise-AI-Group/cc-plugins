@@ -1,0 +1,76 @@
+{
+  "name": "cc-plugins",
+  "owner": {
+    "name": "Arise Group"
+  },
+  "metadata": {
+    "description": "Portable Claude Code plugins for AI-agent-powered automation"
+  },
+  "plugins": [
+    {
+      "name": "core",
+      "source": "./core",
+      "description": "Shared skills and utilities - setup, configuration, and common workflows"
+    },
+    {
+      "name": "client-onboarding",
+      "source": "./client-onboarding",
+      "description": "Set up Slack channels and resources for new clients"
+    },
+    {
+      "name": "demo-deploy",
+      "source": "./demo-deploy",
+      "description": "Deploy demo applications with GitHub integration and Traefik routing"
+    },
+    {
+      "name": "diagrams",
+      "source": "./diagrams",
+      "description": "Generate diagrams in Draw.io, Mermaid, and ASCII formats from JSON or natural language"
+    },
+    {
+      "name": "infrastructure",
+      "source": "./infrastructure",
+      "description": "Manage team infrastructure with Cloudflare DNS/tunnels and Dokploy containers"
+    },
+    {
+      "name": "leads",
+      "source": "./leads",
+      "description": "Scrape and verify sales leads via Apify, upload to Google Sheets"
+    },
+    {
+      "name": "md-export",
+      "source": "./md-export",
+      "description": "Export markdown to Google Docs and Word documents with Mermaid diagram rendering"
+    },
+    {
+      "name": "n8n",
+      "source": "./n8n",
+      "description": "Manage n8n workflows - list, deploy, activate, execute, and monitor"
+    },
+    {
+      "name": "notion",
+      "source": "./notion",
+      "description": "Notion page, database, and block management - create pages, query databases, manage content blocks, and search workspace"
+    },
+    {
+      "name": "proposal",
+      "source": "./proposal",
+      "description": "Generate sales proposals and create Google Slides presentations from templates"
+    },
+    {
+      "name": "slack",
+      "source": "./slack",
+      "description": "Slack channel and message management - create channels, retrieve messages, manage pins, canvases, and user groups"
+    },
+    {
+      "name": "sop",
+      "source": "./sop",
+      "description": "Audio transcription and SOP extraction - convert interviews and recordings into structured procedures"
+    },
+    {
+      "name": "ssh",
+      "source": "./ssh",
+      "description": "Execute commands and transfer files on remote servers via SSH/SFTP"
+    }
+  ]
+}

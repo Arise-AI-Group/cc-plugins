@@ -1,0 +1,8 @@
+{
+  "name": "ssh",
+  "description": "Execute commands and transfer files on remote servers via SSH/SFTP",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "diagrams",
+  "description": "Generate diagrams in Draw.io, Mermaid, and ASCII formats from JSON or natural language",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}

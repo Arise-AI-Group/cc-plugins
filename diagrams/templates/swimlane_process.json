@@ -1,0 +1,30 @@
+{
+  "type": "swimlane",
+  "title": "Business Process",
+  "groups": [
+    {"id": "phase1", "label": "PHASE 1: INITIATE", "color": "blue"},
+    {"id": "phase2", "label": "PHASE 2: EXECUTE", "color": "green"},
+    {"id": "phase3", "label": "PHASE 3: REVIEW", "color": "orange"},
+    {"id": "phase4", "label": "PHASE 4: COMPLETE", "color": "red"}
+  ],
+  "nodes": [
+    {"id": "start", "label": "Request Received", "group": "phase1"},
+    {"id": "validate", "label": "Validate Request", "group": "phase1"},
+    {"id": "assign", "label": "Assign Resources", "group": "phase2"},
+    {"id": "execute", "label": "Execute Task", "group": "phase2"},
+    {"id": "review", "label": "Quality Review", "group": "phase3"},
+    {"id": "approve", "label": "Approval?", "shape": "diamond", "group": "phase3"},
+    {"id": "deliver", "label": "Deliver Results", "group": "phase4"},
+    {"id": "close", "label": "Close Request", "group": "phase4"}
+  ],
+  "connections": [
+    {"from": "start", "to": "validate"},
+    {"from": "validate", "to": "assign"},
+    {"from": "assign", "to": "execute"},
+    {"from": "execute", "to": "review"},
+    {"from": "review", "to": "approve"},
+    {"from": "approve", "to": "deliver", "label": "Yes"},
+    {"from": "approve", "to": "execute", "label": "No", "style": "dashed"},
+    {"from": "deliver", "to": "close"}
+  ]
+}

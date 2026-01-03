@@ -1,0 +1,20 @@
+Interview Transcript - Customer Onboarding Process
+
+Host: Today we're discussing our customer onboarding process. Can you walk me through the steps?
+
+Expert: Sure. The onboarding process has three main phases.
+
+Topic: Initial Setup
+First, we collect the customer's information through our intake form. This includes company name, primary contact, and billing details. We then create their account in our system and send them a welcome email with login credentials.
+
+Topic: Configuration
+Next, we schedule a kickoff call to understand their specific needs. During this call, we configure their workspace, set up integrations with their existing tools, and customize their dashboard. This usually takes about 30 minutes.
+
+Topic: Training
+Finally, we provide training sessions. We offer both live webinars and recorded tutorials. We also assign a customer success manager who checks in weekly during the first month.
+
+Host: What are the common issues you encounter?
+
+Expert: The most common issues are incomplete intake forms and scheduling conflicts for the kickoff call. We've added validation to the form and now offer more flexible scheduling options.
+
+Host: Great, thank you for the overview.

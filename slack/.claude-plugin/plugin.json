@@ -1,0 +1,8 @@
+{
+  "name": "slack",
+  "description": "Slack channel and message management - create channels, retrieve messages, manage pins, canvases, and user groups",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}
