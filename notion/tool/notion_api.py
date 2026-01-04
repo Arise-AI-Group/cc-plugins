@@ -274,7 +274,7 @@ class NotionClient:
             Query results with results, has_more, next_cursor
         """
         params = {
-            "database_id": database_id,
+            "data_source_id": database_id,
             "page_size": min(page_size, 100)
         }
 
@@ -285,7 +285,8 @@ class NotionClient:
         if start_cursor:
             params["start_cursor"] = start_cursor
 
-        return self._request(self.client.databases.query, **params)
+        # Notion API uses data_sources.query for database queries
+        return self._request(self.client.data_sources.query, **params)
 
     def query_database_all(
         self,

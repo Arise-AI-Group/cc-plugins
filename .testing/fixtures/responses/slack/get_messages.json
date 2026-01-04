@@ -1,0 +1,20 @@
+[
+    {
+        "type": "message",
+        "user": "U0001234567",
+        "text": "Hello everyone!",
+        "ts": "1704672000.000001"
+    },
+    {
+        "type": "message",
+        "user": "U0002345678",
+        "text": "Good morning!",
+        "ts": "1704672060.000002"
+    },
+    {
+        "type": "message",
+        "user": "U0001234567",
+        "text": "Has anyone seen the latest updates?",
+        "ts": "1704672120.000003"
+    }
+]

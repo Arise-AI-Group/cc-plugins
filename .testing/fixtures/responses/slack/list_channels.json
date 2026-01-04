@@ -1,0 +1,29 @@
+[
+    {
+        "id": "C0001234567",
+        "name": "general",
+        "is_private": false,
+        "is_archived": false,
+        "num_members": 50,
+        "topic": {"value": "General discussion"},
+        "purpose": {"value": "Company-wide announcements"}
+    },
+    {
+        "id": "C0002345678",
+        "name": "random",
+        "is_private": false,
+        "is_archived": false,
+        "num_members": 45,
+        "topic": {"value": "Non-work banter"},
+        "purpose": {"value": "Random stuff"}
+    },
+    {
+        "id": "C0003456789",
+        "name": "engineering",
+        "is_private": false,
+        "is_archived": false,
+        "num_members": 20,
+        "topic": {"value": "Engineering team"},
+        "purpose": {"value": "Engineering discussions"}
+    }
+]

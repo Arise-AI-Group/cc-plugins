@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cc-plugins"
+version = "0.1.0"
+description = "Claude Code Plugins"
+requires-python = ">=3.9"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests", "slack", "notion", "n8n", "infrastructure", "diagrams", "ssh", "core"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "level1: Dry tests with mocked responses (no external communication)",
+    "level2: Read-only tests with real API calls (list, get, query operations)",
+    "level3: Write tests with real API calls (create, update, delete operations)",
+    "slow: Tests that take more than 10 seconds",
+    "requires_credentials: Tests that require valid API credentials",
+    "integration: Cross-plugin integration tests",
+]
+addopts = "-v --tb=short -ra"
+log_cli = true
+log_cli_level = "INFO"
+filterwarnings = ["error::pytest.PytestUnraisableExceptionWarning"]

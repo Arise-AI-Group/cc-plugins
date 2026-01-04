@@ -1,0 +1,31 @@
+{
+    "object": "list",
+    "results": [
+        {
+            "object": "page",
+            "id": "row-001-1234-1234-123456789012",
+            "properties": {
+                "Name": {
+                    "title": [{"plain_text": "Item 1"}]
+                },
+                "Status": {
+                    "select": {"name": "In Progress"}
+                }
+            }
+        },
+        {
+            "object": "page",
+            "id": "row-002-1234-1234-123456789012",
+            "properties": {
+                "Name": {
+                    "title": [{"plain_text": "Item 2"}]
+                },
+                "Status": {
+                    "select": {"name": "Done"}
+                }
+            }
+        }
+    ],
+    "next_cursor": null,
+    "has_more": false
+}

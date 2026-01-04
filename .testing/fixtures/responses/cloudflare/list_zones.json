@@ -1,0 +1,16 @@
+[
+    {
+        "id": "zone-001-abcdef123456",
+        "name": "example.com",
+        "status": "active",
+        "type": "full",
+        "development_mode": 0
+    },
+    {
+        "id": "zone-002-ghijkl789012",
+        "name": "test-domain.com",
+        "status": "active",
+        "type": "full",
+        "development_mode": 0
+    }
+]

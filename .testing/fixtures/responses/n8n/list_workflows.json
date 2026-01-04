@@ -1,0 +1,23 @@
+[
+    {
+        "id": "wf-001",
+        "name": "Email Notification Workflow",
+        "active": true,
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-07T12:00:00.000Z"
+    },
+    {
+        "id": "wf-002",
+        "name": "Data Sync Workflow",
+        "active": false,
+        "createdAt": "2024-01-02T00:00:00.000Z",
+        "updatedAt": "2024-01-06T12:00:00.000Z"
+    },
+    {
+        "id": "wf-003",
+        "name": "Backup Workflow",
+        "active": true,
+        "createdAt": "2024-01-03T00:00:00.000Z",
+        "updatedAt": "2024-01-05T12:00:00.000Z"
+    }
+]

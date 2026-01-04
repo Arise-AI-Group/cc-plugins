@@ -1,0 +1,34 @@
+[
+    {
+        "id": "U0001234567",
+        "name": "john.doe",
+        "real_name": "John Doe",
+        "is_admin": false,
+        "is_bot": false,
+        "profile": {
+            "email": "john@example.com",
+            "display_name": "John"
+        }
+    },
+    {
+        "id": "U0002345678",
+        "name": "jane.smith",
+        "real_name": "Jane Smith",
+        "is_admin": true,
+        "is_bot": false,
+        "profile": {
+            "email": "jane@example.com",
+            "display_name": "Jane"
+        }
+    },
+    {
+        "id": "U0003456789",
+        "name": "bot.assistant",
+        "real_name": "Assistant Bot",
+        "is_admin": false,
+        "is_bot": true,
+        "profile": {
+            "display_name": "Bot"
+        }
+    }
+]

@@ -1,0 +1,148 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [main, feature/*]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      test_level:
+        description: 'Test level to run (1=dry, 2=read-only, 3=write)'
+        required: false
+        default: '1'
+        type: choice
+        options:
+          - '1'
+          - '2'
+          - '3'
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # Level 1 tests run on every PR (no credentials needed)
+  level1-tests:
+    name: Level 1 - Dry Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Install plugin dependencies
+        run: |
+          for plugin in slack notion n8n infrastructure diagrams ssh core; do
+            if [ -f "$plugin/requirements.txt" ]; then
+              pip install -r $plugin/requirements.txt || true
+            fi
+          done
+
+      - name: Run Level 1 tests
+        run: python tests/run_tests.py --level 1
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-level1
+          path: |
+            htmlcov/
+            .coverage
+          retention-days: 7
+
+  # Level 2 tests run on main branch only (requires secrets)
+  level2-tests:
+    name: Level 2 - Read-Only Tests
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event.inputs.test_level >= '2'
+    needs: level1-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          for plugin in slack notion n8n infrastructure; do
+            if [ -f "$plugin/requirements.txt" ]; then
+              pip install -r $plugin/requirements.txt || true
+            fi
+          done
+
+      - name: Create credentials file
+        run: |
+          mkdir -p ~/.config/cc-plugins
+          cat << EOF > ~/.config/cc-plugins/.env
+          SLACK_BOT_TOKEN=${{ secrets.SLACK_BOT_TOKEN }}
+          NOTION_API_KEY=${{ secrets.NOTION_API_KEY }}
+          N8N_API_URL=${{ secrets.N8N_API_URL }}
+          N8N_API_KEY=${{ secrets.N8N_API_KEY }}
+          CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          EOF
+
+      - name: Run Level 2 tests
+        run: python tests/run_tests.py --level 2
+
+  # Level 3 tests run manually only (write operations)
+  level3-tests:
+    name: Level 3 - Write Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.test_level == '3'
+    needs: level2-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          for plugin in slack notion n8n infrastructure; do
+            if [ -f "$plugin/requirements.txt" ]; then
+              pip install -r $plugin/requirements.txt || true
+            fi
+          done
+
+      - name: Create credentials file
+        run: |
+          mkdir -p ~/.config/cc-plugins
+          cat << EOF > ~/.config/cc-plugins/.env
+          SLACK_BOT_TOKEN=${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_USER_TOKEN=${{ secrets.SLACK_USER_TOKEN }}
+          NOTION_API_KEY=${{ secrets.NOTION_API_KEY }}
+          N8N_API_URL=${{ secrets.N8N_API_URL }}
+          N8N_API_KEY=${{ secrets.N8N_API_KEY }}
+          CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DOKPLOY_URL=${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_API_KEY=${{ secrets.DOKPLOY_API_KEY }}
+          EOF
+
+      - name: Run Level 3 tests
+        run: python tests/run_tests.py --level 3
+
+      - name: Emergency cleanup on failure
+        if: failure()
+        run: python tests/cleanup_all.py || true

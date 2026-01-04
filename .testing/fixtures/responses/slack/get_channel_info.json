@@ -1,0 +1,20 @@
+{
+    "id": "C0001234567",
+    "name": "general",
+    "is_private": false,
+    "is_archived": false,
+    "is_channel": true,
+    "created": 1609459200,
+    "creator": "U0001234567",
+    "num_members": 50,
+    "topic": {
+        "value": "General discussion",
+        "creator": "U0001234567",
+        "last_set": 1609459200
+    },
+    "purpose": {
+        "value": "Company-wide announcements and general chat",
+        "creator": "U0001234567",
+        "last_set": 1609459200
+    }
+}
