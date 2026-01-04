@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c \"import os; exit(0 if all([os.getenv(\"SLACK_BOT_TOKEN\") and os.getenv(\"SLACK_USER_TOKEN\")]) else 1)\""
+            "command": "python3 -c \"import os; exit(0 if all([os.getenv('SLACK_BOT_TOKEN') and os.getenv('SLACK_USER_TOKEN')]) else 1)\""
           }
         ]
       }

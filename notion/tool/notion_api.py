@@ -142,7 +142,9 @@ class NotionClient:
         }
 
         if filter_type:
-            params["filter"] = {"property": "object", "value": filter_type}
+            # API expects "data_source" not "database"
+            api_filter_type = "data_source" if filter_type == "database" else filter_type
+            params["filter"] = {"property": "object", "value": api_filter_type}
 
         if sort_direction:
             params["sort"] = {
