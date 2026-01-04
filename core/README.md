@@ -5,8 +5,7 @@ Shared skills and utilities for cc-plugins - setup, configuration, and common wo
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
+/plugin install core@cc-plugins
 ```
 
 ## Skills
@@ -17,7 +16,7 @@ This plugin includes:
 ## Usage
 
 ```
-/setup
+/core:skills
 ```
 
 Or say "set up cc-plugins" to trigger the setup skill.

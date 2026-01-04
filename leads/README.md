@@ -1,23 +1,16 @@
-# agentic-leads
+# leads
 
 Scrape and verify sales leads via Apify, upload to Google Sheets
 
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
-
-# Edit .env with your credentials
-nano .env
-
-# Run Claude Code with this plugin
-claude --plugin-dir .
+/plugin install leads@cc-plugins
 ```
 
 ## Commands
 
-- `/agentic-leads:*` - See available commands with `/help`
+- `/leads:skills` - See available commands with `/help`
 
 ## Environment Variables
 
@@ -28,7 +21,7 @@ claude --plugin-dir .
 ### Via Slash Commands
 
 ```
-/agentic-leads:<action> [args]
+/leads:<action> [args]
 ```
 
 ### Via CLI

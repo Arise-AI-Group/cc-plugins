@@ -1,23 +1,16 @@
-# agentic-slack
+# slack
 
 Slack channel and message management - create channels, retrieve messages, manage pins, canvases, and user groups
 
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
-
-# Edit .env with your credentials
-nano .env
-
-# Run Claude Code with this plugin
-claude --plugin-dir .
+/plugin install slack@cc-plugins
 ```
 
 ## Commands
 
-- `/agentic-slack:*` - See available commands with `/help`
+- `/slack:skills` - See available commands with `/help`
 
 ## Environment Variables
 
@@ -29,7 +22,7 @@ claude --plugin-dir .
 ### Via Slash Commands
 
 ```
-/agentic-slack:<action> [args]
+/slack:<action> [args]
 ```
 
 ### Via CLI

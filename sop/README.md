@@ -1,23 +1,16 @@
-# agentic-sop
+# sop
 
 Audio transcription and SOP extraction - convert interviews and recordings into structured procedures
 
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
-
-# Edit .env with your credentials
-nano .env
-
-# Run Claude Code with this plugin
-claude --plugin-dir .
+/plugin install sop@cc-plugins
 ```
 
 ## Commands
 
-- `/agentic-sop:*` - See available commands with `/help`
+- `/sop:skills` - See available commands with `/help`
 
 ## Environment Variables
 
@@ -28,7 +21,7 @@ claude --plugin-dir .
 ### Via Slash Commands
 
 ```
-/agentic-sop:<action> [args]
+/sop:<action> [args]
 ```
 
 ### Via CLI

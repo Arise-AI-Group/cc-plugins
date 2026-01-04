@@ -1,23 +1,16 @@
-# agentic-demo-deploy
+# demo-deploy
 
 Deploy demo applications with GitHub integration and Traefik routing
 
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
-
-# Edit .env with your credentials
-nano .env
-
-# Run Claude Code with this plugin
-claude --plugin-dir .
+/plugin install demo-deploy@cc-plugins
 ```
 
 ## Commands
 
-- `/agentic-demo-deploy:*` - See available commands with `/help`
+- `/demo-deploy:skills` - See available commands with `/help`
 
 ## Environment Variables
 
@@ -29,7 +22,7 @@ claude --plugin-dir .
 ### Via Slash Commands
 
 ```
-/agentic-demo-deploy:<action> [args]
+/demo-deploy:<action> [args]
 ```
 
 ### Via CLI

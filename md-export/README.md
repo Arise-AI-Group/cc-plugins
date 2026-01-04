@@ -1,23 +1,16 @@
-# agentic-md-export
+# md-export
 
 Export markdown to Google Docs and Word documents with Mermaid diagram rendering
 
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
-
-# Edit .env with your credentials
-nano .env
-
-# Run Claude Code with this plugin
-claude --plugin-dir .
+/plugin install md-export@cc-plugins
 ```
 
 ## Commands
 
-- `/agentic-md-export:*` - See available commands with `/help`
+- `/md-export:skills` - See available commands with `/help`
 
 ## Environment Variables
 
@@ -28,7 +21,7 @@ claude --plugin-dir .
 ### Via Slash Commands
 
 ```
-/agentic-md-export:<action> [args]
+/md-export:<action> [args]
 ```
 
 ### Via CLI

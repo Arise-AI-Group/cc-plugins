@@ -1,23 +1,16 @@
-# agentic-client-onboarding
+# client-onboarding
 
 Set up Slack channels and resources for new clients
 
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
-
-# Edit .env with your credentials
-nano .env
-
-# Run Claude Code with this plugin
-claude --plugin-dir .
+/plugin install client-onboarding@cc-plugins
 ```
 
 ## Commands
 
-- `/agentic-client-onboarding:*` - See available commands with `/help`
+- `/client-onboarding:skills` - See available commands with `/help`
 
 ## Environment Variables
 
@@ -29,7 +22,7 @@ claude --plugin-dir .
 ### Via Slash Commands
 
 ```
-/agentic-client-onboarding:<action> [args]
+/client-onboarding:<action> [args]
 ```
 
 ### Via CLI

@@ -1,23 +1,16 @@
-# agentic-proposal
+# proposal
 
 Generate sales proposals and create Google Slides presentations from templates
 
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
-
-# Edit .env with your credentials
-nano .env
-
-# Run Claude Code with this plugin
-claude --plugin-dir .
+/plugin install proposal@cc-plugins
 ```
 
 ## Commands
 
-- `/agentic-proposal:*` - See available commands with `/help`
+- `/proposal:skills` - See available commands with `/help`
 
 ## Environment Variables
 
@@ -28,7 +21,7 @@ claude --plugin-dir .
 ### Via Slash Commands
 
 ```
-/agentic-proposal:<action> [args]
+/proposal:<action> [args]
 ```
 
 ### Via CLI

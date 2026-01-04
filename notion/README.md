@@ -1,23 +1,16 @@
-# agentic-notion
+# notion
 
 Notion page, database, and block management - create pages, query databases, manage content blocks, and search workspace
 
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
-
-# Edit .env with your credentials
-nano .env
-
-# Run Claude Code with this plugin
-claude --plugin-dir .
+/plugin install notion@cc-plugins
 ```
 
 ## Commands
 
-- `/agentic-notion:*` - See available commands with `/help`
+- `/notion:skills` - See available commands with `/help`
 
 ## Environment Variables
 
@@ -28,7 +21,7 @@ claude --plugin-dir .
 ### Via Slash Commands
 
 ```
-/agentic-notion:<action> [args]
+/notion:<action> [args]
 ```
 
 ### Via CLI

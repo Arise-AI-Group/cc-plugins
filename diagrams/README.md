@@ -1,23 +1,16 @@
-# agentic-diagrams
+# diagrams
 
 Generate diagrams in Draw.io, Mermaid, and ASCII formats from JSON or natural language
 
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
-
-# Edit .env with your credentials
-nano .env
-
-# Run Claude Code with this plugin
-claude --plugin-dir .
+/plugin install diagrams@cc-plugins
 ```
 
 ## Commands
 
-- `/agentic-diagrams:*` - See available commands with `/help`
+- `/diagrams:skills` - See available commands with `/help`
 
 ## Environment Variables
 
@@ -28,7 +21,7 @@ claude --plugin-dir .
 ### Via Slash Commands
 
 ```
-/agentic-diagrams:<action> [args]
+/diagrams:<action> [args]
 ```
 
 ### Via CLI

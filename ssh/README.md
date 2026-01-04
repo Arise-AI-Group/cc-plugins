@@ -1,23 +1,16 @@
-# agentic-ssh
+# ssh
 
 Execute commands and transfer files on remote servers via SSH/SFTP
 
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
-
-# Edit .env with your credentials
-nano .env
-
-# Run Claude Code with this plugin
-claude --plugin-dir .
+/plugin install ssh@cc-plugins
 ```
 
 ## Commands
 
-- `/agentic-ssh:*` - See available commands with `/help`
+- `/ssh:skills` - See available commands with `/help`
 
 ## Environment Variables
 
@@ -29,7 +22,7 @@ claude --plugin-dir .
 ### Via Slash Commands
 
 ```
-/agentic-ssh:<action> [args]
+/ssh:<action> [args]
 ```
 
 ### Via CLI

@@ -1,23 +1,16 @@
-# agentic-infrastructure
+# infrastructure
 
 Manage team infrastructure with Cloudflare DNS/tunnels and Dokploy containers
 
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
-
-# Edit .env with your credentials
-nano .env
-
-# Run Claude Code with this plugin
-claude --plugin-dir .
+/plugin install infrastructure@cc-plugins
 ```
 
 ## Commands
 
-- `/agentic-infrastructure:*` - See available commands with `/help`
+- `/infrastructure:skills` - See available commands with `/help`
 
 ## Environment Variables
 
@@ -31,7 +24,7 @@ claude --plugin-dir .
 ### Via Slash Commands
 
 ```
-/agentic-infrastructure:<action> [args]
+/infrastructure:<action> [args]
 ```
 
 ### Via CLI

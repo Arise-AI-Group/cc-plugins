@@ -1,23 +1,16 @@
-# agentic-n8n
+# n8n
 
 Manage n8n workflows - list, deploy, activate, execute, and monitor
 
 ## Installation
 
 ```bash
-# Set up the plugin
-./setup.sh
-
-# Edit .env with your credentials
-nano .env
-
-# Run Claude Code with this plugin
-claude --plugin-dir .
+/plugin install n8n@cc-plugins
 ```
 
 ## Commands
 
-- `/agentic-n8n:*` - See available commands with `/help`
+- `/n8n:skills` - See available commands with `/help`
 
 ## Environment Variables
 
@@ -29,7 +22,7 @@ claude --plugin-dir .
 ### Via Slash Commands
 
 ```
-/agentic-n8n:<action> [args]
+/n8n:<action> [args]
 ```
 
 ### Via CLI
