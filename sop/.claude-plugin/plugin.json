@@ -1,7 +1,7 @@
 {
   "name": "sop",
   "description": "Audio transcription and SOP extraction - convert interviews and recordings into structured procedures",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": {
     "name": "Arise Group"
   }

@@ -1,7 +1,7 @@
 {
   "name": "leads",
   "description": "Scrape and verify sales leads via Apify, upload to Google Sheets",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": {
     "name": "Arise Group"
   }
