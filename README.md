@@ -9,7 +9,7 @@ Each plugin is self-contained and follows the [official Claude Code plugin stand
 ### 1. Add the Plugin Marketplace
 
 ```bash
-/plugin marketplace add arisegroup/cc-plugins
+/plugin marketplace add Arise-AI-Group/cc-plugins
 ```
 
 This registers the GitHub repository as a plugin marketplace in Claude Code.
@@ -128,7 +128,7 @@ Development requires cloning the repository. End users don't need to clone - the
 ### Cloning the Repository
 
 ```bash
-git clone https://github.com/arisegroup/cc-plugins.git
+git clone https://github.com/Arise-AI-Group/cc-plugins.git
 cd cc-plugins
 python -m venv .venv && source .venv/bin/activate
 ```
