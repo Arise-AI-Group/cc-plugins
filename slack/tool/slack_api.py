@@ -1321,6 +1321,92 @@ class SlackClient:
             "title": file_data.get("title", "")
         }
 
+    def get_transcript_content(self, transcript_file_id: str, use_user_token: bool = True) -> Dict:
+        """
+        Download raw huddle transcript file content (VTT or similar format).
+
+        Args:
+            transcript_file_id: The huddle_transcript_file_id from huddle notes,
+                               or transcript.file_id from find_huddles()
+            use_user_token: If True (default), use user token for download which has
+                           broader file access permissions. Falls back to bot token.
+
+        Returns:
+            Dict with transcript content and metadata including:
+            - file_id: The file ID
+            - filetype: File type (e.g., 'vtt')
+            - name: File name
+            - content: Raw transcript text content
+            - title: File title
+        """
+        import urllib.request
+
+        # Get file info to get download URL (bot token works for this)
+        file_info = self._request_with_retry(
+            self.client.files_info,
+            file=transcript_file_id
+        )
+
+        file_data = file_info.get("file", {})
+        download_url = file_data.get("url_private_download")
+
+        if not download_url:
+            return {
+                "file_id": transcript_file_id,
+                "error": "No download URL available - file may require different permissions"
+            }
+
+        # Use user token for download if available (has broader file access)
+        # Bot tokens often can't download huddle transcript files
+        if use_user_token and self.user_client:
+            token = self.user_client.token
+        else:
+            token = self.client.token
+            if use_user_token and not self.user_client:
+                print("Warning: User token not configured. Trying bot token (may fail for transcript files).", file=sys.stderr)
+
+        req = urllib.request.Request(
+            download_url,
+            headers={"Authorization": f"Bearer {token}"}
+        )
+
+        try:
+            with urllib.request.urlopen(req) as resp:
+                content = resp.read().decode("utf-8", errors="replace")
+        except Exception as e:
+            return {
+                "file_id": transcript_file_id,
+                "error": str(e)
+            }
+
+        # Check if we got HTML (login redirect) instead of actual content
+        if content.strip().startswith("<!DOCTYPE html") or content.strip().startswith("<html"):
+            # huddle_transcript files are protected by Slack and don't support API download
+            filetype = file_data.get("filetype")
+            if filetype == "huddle_transcript":
+                error_msg = (
+                    "Slack's huddle_transcript files don't support API download (requires browser session). "
+                    "Use 'huddles notes <notes_file_id>' instead to get the AI-generated summary, "
+                    "which includes key points, action items, and timestamped references."
+                )
+            else:
+                error_msg = "Got HTML redirect instead of content. Token may lack required scopes."
+            return {
+                "file_id": transcript_file_id,
+                "filetype": filetype,
+                "name": file_data.get("name"),
+                "error": error_msg
+            }
+
+        return {
+            "file_id": transcript_file_id,
+            "filetype": file_data.get("filetype"),
+            "name": file_data.get("name"),
+            "title": file_data.get("title", ""),
+            "size": file_data.get("size"),
+            "content": content
+        }
+
     # ==================== Helper Methods ====================
 
     # Common Slack emoji codes to Unicode mapping
@@ -1866,6 +1952,10 @@ def build_parser() -> argparse.ArgumentParser:
     huddles_notes = huddles_sub.add_parser("notes", help="Get huddle notes canvas content")
     huddles_notes.add_argument("file_id", help="Huddle notes canvas file ID")
 
+    # huddles transcript
+    huddles_transcript = huddles_sub.add_parser("transcript", help="Get raw huddle transcript content")
+    huddles_transcript.add_argument("file_id", help="Huddle transcript file ID (from notes.huddle_transcript_file_id)")
+
     return parser
 
 
@@ -2244,6 +2334,14 @@ def main():
 
             elif args.action == "notes":
                 result = client.get_huddle_notes_content(args.file_id)
+                print(json.dumps(result, indent=2))
+
+            elif args.action == "transcript":
+                result = client.get_transcript_content(args.file_id)
+                if result.get("error"):
+                    print(f"Error: {result['error']}", file=sys.stderr)
+                    sys.exit(1)
+                print(f"Retrieved transcript: {result.get('name')} ({result.get('filetype')}, {result.get('size')} bytes)", file=sys.stderr)
                 print(json.dumps(result, indent=2))
 
             else:

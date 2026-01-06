@@ -108,6 +108,57 @@ and workspace search.
 
 ---
 
+## Data Source Operations
+
+**IMPORTANT:** Notion now uses a `data_sources` architecture separate from `databases`.
+For adding or modifying database properties (schema changes), use `data_sources update`
+instead of `databases update`. The legacy endpoint often fails silently.
+
+### Get Data Source
+```bash
+# Get full schema including all properties
+./run tool/notion_api.py data_sources get <data_source_id>
+```
+
+### Update Data Source Schema
+```bash
+# Add properties to a database
+./run tool/notion_api.py data_sources update <data_source_id> \
+  --properties '{
+    "Priority": {
+      "select": {
+        "options": [
+          {"name": "High", "color": "red"},
+          {"name": "Medium", "color": "yellow"},
+          {"name": "Low", "color": "green"}
+        ]
+      }
+    }
+  }'
+
+# Add a relation property (requires target data_source_id, not database_id)
+./run tool/notion_api.py data_sources update <data_source_id> \
+  --properties '{
+    "Project": {
+      "relation": {
+        "data_source_id": "<target_data_source_id>",
+        "type": "dual_property",
+        "dual_property": {"synced_property_name": "Related Items"}
+      }
+    }
+  }'
+```
+
+### Finding Data Source IDs
+Data source IDs are different from database IDs. To find a data source ID:
+```bash
+# Search returns data_source objects with their IDs
+./run tool/notion_api.py search "database name" --filter database
+```
+The `id` field in the returned `data_source` object is the data source ID.
+
+---
+
 ## Block Operations
 
 ### Get Page Content
@@ -266,6 +317,19 @@ NOTION_API_KEY=secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 - **Code block preview mode** - The "preview only" toggle for Mermaid/math blocks
   is not exposed via API. Code blocks always show code; preview-only requires UI.
 
+### Data Sources vs Databases
+Notion's API has evolved to use a `data_sources` architecture:
+- **databases.create** - Still works for creating new databases
+- **databases.update** - DEPRECATED for schema changes (adding properties). Often
+  returns success but doesn't actually apply the changes.
+- **data_sources.query** - Used for querying database entries (the plugin already uses this)
+- **data_sources.update** - The CORRECT endpoint for modifying database schemas
+- **Relations** - Must use `data_source_id` not `database_id` when creating relations
+
+**Workflow for adding properties to an existing database:**
+1. Find the data source ID: `search "database name" --filter database`
+2. Update schema: `data_sources update <data_source_id> --properties '{...}'`
+
 For dashboards with linked database views, use the API to create the page
 structure (headings, sections, instructions) and have users add the linked
 databases manually via Notion UI using `/linked` command.
@@ -389,6 +453,15 @@ The `markdown_to_blocks()` helper supports:
 ---
 
 ## Changelog
+
+### 2026-01-06
+- **Added:** `data_sources` CLI commands for schema modifications:
+  - `data_sources get <data_source_id>` - Retrieve full schema
+  - `data_sources update <data_source_id> --properties JSON` - Add/modify properties
+- **Added:** `get_data_source()` and `update_data_source()` methods to NotionClient
+- **Documented:** Data Sources vs Databases architecture explanation in Edge Cases
+- **Note:** `databases update` is now marked as legacy - use `data_sources update` for
+  schema changes as the databases.update endpoint often fails silently.
 
 ### 2025-12-30
 - **Fixed:** `create_database()` now includes required `type` field in parent object.

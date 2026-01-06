@@ -3,29 +3,36 @@
 Notion API Integration Script
 
 Execution tool for managing Notion pages, databases, and blocks via the API.
-Supports: pages, databases, blocks, search, and users.
+Supports: pages, databases, data_sources, blocks, search, and users.
 
 Usage (CLI):
-    ./run modules/notion/tool/notion_api.py pages get <page_id>
-    ./run modules/notion/tool/notion_api.py pages create <parent_id> --title "Title" [--content "Markdown"]
-    ./run modules/notion/tool/notion_api.py pages update <page_id> --title "New Title"
-    ./run modules/notion/tool/notion_api.py pages archive <page_id>
-    ./run modules/notion/tool/notion_api.py pages restore <page_id>
+    ./run tool/notion_api.py pages get <page_id>
+    ./run tool/notion_api.py pages create <parent_id> --title "Title" [--content "Markdown"]
+    ./run tool/notion_api.py pages update <page_id> --title "New Title"
+    ./run tool/notion_api.py pages archive <page_id>
+    ./run tool/notion_api.py pages restore <page_id>
 
-    ./run modules/notion/tool/notion_api.py databases get <database_id>
-    ./run modules/notion/tool/notion_api.py databases query <database_id> [--filter JSON] [--sorts JSON]
-    ./run modules/notion/tool/notion_api.py databases create <parent_id> --title "Title" --properties JSON
+    ./run tool/notion_api.py databases get <database_id>
+    ./run tool/notion_api.py databases query <database_id> [--filter JSON] [--sorts JSON]
+    ./run tool/notion_api.py databases create <parent_id> --title "Title" --properties JSON
+    ./run tool/notion_api.py databases update <database_id> --properties JSON  # Legacy, may not work
 
-    ./run modules/notion/tool/notion_api.py blocks get <block_id>
-    ./run modules/notion/tool/notion_api.py blocks children <block_id> [--as-markdown]
-    ./run modules/notion/tool/notion_api.py blocks append <parent_id> --content "Markdown"
-    ./run modules/notion/tool/notion_api.py blocks delete <block_id>
+    ./run tool/notion_api.py data_sources get <data_source_id>
+    ./run tool/notion_api.py data_sources update <data_source_id> --properties JSON
 
-    ./run modules/notion/tool/notion_api.py search <query> [--filter pages|databases]
+    ./run tool/notion_api.py blocks get <block_id>
+    ./run tool/notion_api.py blocks children <block_id> [--as-markdown]
+    ./run tool/notion_api.py blocks append <parent_id> --content "Markdown"
+    ./run tool/notion_api.py blocks delete <block_id>
 
-    ./run modules/notion/tool/notion_api.py users list
-    ./run modules/notion/tool/notion_api.py users get <user_id>
-    ./run modules/notion/tool/notion_api.py users me
+    ./run tool/notion_api.py search <query> [--filter pages|databases]
+
+    ./run tool/notion_api.py users list
+    ./run tool/notion_api.py users get <user_id>
+    ./run tool/notion_api.py users me
+
+Note: For schema modifications (adding properties), use data_sources update instead
+of databases update. The databases.update endpoint is deprecated for schema changes.
 
 Usage (Module):
     from modules.notion.tool.notion_api import NotionClient
@@ -357,7 +364,13 @@ class NotionClient:
         title: str = None,
         properties: Dict = None
     ) -> Dict:
-        """Update database title or schema."""
+        """
+        Update database title or schema.
+
+        NOTE: This uses the legacy databases.update endpoint which may not work
+        for adding new properties. Use update_data_source() instead for schema
+        modifications.
+        """
         params = {"database_id": database_id}
 
         if title:
@@ -366,6 +379,74 @@ class NotionClient:
             params["properties"] = properties
 
         return self._request(self.client.databases.update, **params)
+
+    # ==================== Data Source Operations ====================
+
+    def get_data_source(self, data_source_id: str) -> Dict:
+        """
+        Get a data source by ID.
+
+        Data sources are Notion's new architecture for databases. Use this to
+        retrieve the full schema including properties.
+
+        Args:
+            data_source_id: Data source ID (can find via search with filter=database)
+
+        Returns:
+            Data source object with properties schema
+        """
+        return self._request(self.client.data_sources.retrieve, data_source_id=data_source_id)
+
+    def update_data_source(
+        self,
+        data_source_id: str,
+        properties: Dict = None
+    ) -> Dict:
+        """
+        Update a data source's properties schema.
+
+        This is the correct method for adding/modifying database properties
+        in Notion's new architecture. The databases.update endpoint no longer
+        works reliably for schema modifications.
+
+        Args:
+            data_source_id: Data source ID (NOT the database ID)
+            properties: Properties to add or update
+
+        Returns:
+            Updated data source object
+
+        Example:
+            # Add a select property
+            client.update_data_source("data-source-id", properties={
+                "Priority": {
+                    "select": {
+                        "options": [
+                            {"name": "High", "color": "red"},
+                            {"name": "Medium", "color": "yellow"},
+                            {"name": "Low", "color": "green"}
+                        ]
+                    }
+                }
+            })
+
+            # Add a relation property
+            client.update_data_source("data-source-id", properties={
+                "Project": {
+                    "relation": {
+                        "data_source_id": "target-data-source-id",
+                        "type": "dual_property",
+                        "dual_property": {"synced_property_name": "Related Items"}
+                    }
+                }
+            })
+        """
+        params = {"data_source_id": data_source_id}
+
+        if properties:
+            params["properties"] = properties
+
+        return self._request(self.client.data_sources.update, **params)
 
     # ==================== Block Operations ====================
 
@@ -796,6 +877,19 @@ def build_parser() -> argparse.ArgumentParser:
     db_update.add_argument("--title", help="New title")
     db_update.add_argument("--properties", help="Properties to update (JSON)")
 
+    # === Data Sources ===
+    ds_parser = subparsers.add_parser("data_sources", help="Data source operations (for schema updates)")
+    ds_sub = ds_parser.add_subparsers(dest="action")
+
+    # data_sources get
+    ds_get = ds_sub.add_parser("get", help="Get data source by ID")
+    ds_get.add_argument("data_source_id", help="Data source ID")
+
+    # data_sources update
+    ds_update = ds_sub.add_parser("update", help="Update data source schema (add/modify properties)")
+    ds_update.add_argument("data_source_id", help="Data source ID")
+    ds_update.add_argument("--properties", required=True, help="Properties to add/update (JSON)")
+
     # === Blocks ===
     blocks_parser = subparsers.add_parser("blocks", help="Block operations")
     blocks_sub = blocks_parser.add_subparsers(dest="action")
@@ -968,6 +1062,25 @@ def main():
 
             else:
                 parser.parse_args(["databases", "--help"])
+
+        # === Data Sources ===
+        elif args.category == "data_sources":
+            if args.action == "get":
+                ds = client.get_data_source(args.data_source_id)
+                print(f"Data source: {args.data_source_id}", file=sys.stderr)
+                print(json.dumps(ds, indent=2))
+
+            elif args.action == "update":
+                properties = json.loads(args.properties)
+                ds = client.update_data_source(
+                    data_source_id=args.data_source_id,
+                    properties=properties
+                )
+                print(f"Updated data source: {args.data_source_id}", file=sys.stderr)
+                print(json.dumps(ds, indent=2))
+
+            else:
+                parser.parse_args(["data_sources", "--help"])
 
         # === Blocks ===
         elif args.category == "blocks":

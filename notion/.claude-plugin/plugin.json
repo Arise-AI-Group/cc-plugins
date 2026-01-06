@@ -1,7 +1,7 @@
 {
   "name": "notion",
   "description": "Notion page, database, and block management - create pages, query databases, manage content blocks, and search workspace",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "author": {
     "name": "Arise Group"
   }
