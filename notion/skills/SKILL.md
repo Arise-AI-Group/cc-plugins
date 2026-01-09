@@ -51,6 +51,16 @@ and workspace search.
   --title "New Entry" \
   --database
 
+# Create database entry with properties
+./run tool/notion_api.py pages create <database_id> \
+  --title "New Task" \
+  --database \
+  --properties '{
+    "Status": {"select": {"name": "Open"}},
+    "Priority": {"select": {"name": "High"}},
+    "Project": {"relation": [{"id": "project-page-id"}]}
+  }'
+
 # Create from markdown file
 ./run tool/notion_api.py pages create <parent_id> \
   --title "Documentation" \
@@ -169,6 +179,9 @@ The `id` field in the returned `data_source` object is the data source ID.
 # Get ALL blocks (paginated)
 ./run tool/notion_api.py blocks children <page_id> --all
 
+# Get ALL blocks recursively (includes nested content in toggles, columns, etc.)
+./run tool/notion_api.py blocks children <page_id> --recursive
+
 # Get as markdown
 ./run tool/notion_api.py blocks children <page_id> --as-markdown
 ```
@@ -198,9 +211,117 @@ The `id` field in the returned `data_source` object is the data source ID.
   --after <block_id>
 ```
 
+### Update Block
+```bash
+# Update block text content
+./run tool/notion_api.py blocks update <block_id> \
+  --type paragraph \
+  --content "Updated text content"
+
+# Update heading
+./run tool/notion_api.py blocks update <block_id> \
+  --type heading_2 \
+  --content "New Heading Text"
+
+# Update with full JSON (for complex updates)
+./run tool/notion_api.py blocks update <block_id> \
+  --type paragraph \
+  --json '{"paragraph": {"rich_text": [{"type": "text", "text": {"content": "Bold text"}, "annotations": {"bold": true}}]}}'
+```
+
 ### Delete Block
 ```bash
 ./run tool/notion_api.py blocks delete <block_id>
+```
+
+---
+
+## Comments
+
+```bash
+# List comments on a page
+./run tool/notion_api.py comments list <page_id>
+
+# Create a comment on a page
+./run tool/notion_api.py comments create <page_id> --content "This is my comment"
+
+# Reply to an existing discussion thread
+./run tool/notion_api.py comments create <page_id> \
+  --content "Reply to thread" \
+  --discussion <discussion_id>
+```
+
+---
+
+## Batch Operations
+
+Batch operations handle multiple items with built-in rate limiting (~3 req/sec) and partial failure handling.
+
+### Create Multiple Database Entries
+```bash
+# From JSON file
+./run tool/notion_api.py pages create-batch <database_id> --file entries.json
+
+# From inline JSON
+./run tool/notion_api.py pages create-batch <database_id> --json '[
+  {"title": "Task 1", "properties": {"Status": {"select": {"name": "Open"}}}},
+  {"title": "Task 2", "properties": {"Priority": {"select": {"name": "High"}}}}
+]'
+```
+
+**Entry format:**
+```json
+[
+  {
+    "title": "Entry Name",
+    "properties": {"Status": {"select": {"name": "Open"}}},
+    "content": "## Page Body\nOptional markdown content",
+    "icon": "📌"
+  }
+]
+```
+
+### Update Multiple Pages
+```bash
+# From JSON file
+./run tool/notion_api.py pages update-batch --file updates.json
+
+# From inline JSON
+./run tool/notion_api.py pages update-batch --json '[
+  {"page_id": "id1", "properties": {"Status": {"select": {"name": "Done"}}}},
+  {"page_id": "id2", "icon": "✅"}
+]'
+```
+
+**Update format:**
+```json
+[
+  {
+    "page_id": "page-id-here",
+    "properties": {"Status": {"select": {"name": "Done"}}},
+    "icon": "✅",
+    "archived": false
+  }
+]
+```
+
+### Delete Multiple Blocks
+```bash
+./run tool/notion_api.py blocks delete-batch <id1> <id2> <id3>
+```
+
+### Batch Response Format
+All batch operations return:
+```json
+{
+  "created": [...],      // or "updated" or "deleted"
+  "failed": [
+    {"index": 0, "entry": {...}, "error": "Error message"}
+  ],
+  "total": 10,
+  "success_count": 9,
+  "failure_count": 1
+}
 ```
 
 ---
@@ -264,6 +385,73 @@ page = client.create_page("parent-id", "My Page", children=blocks)
 # Get page content as markdown
 blocks = client.get_all_block_children("page-id")
 markdown = client.blocks_to_markdown(blocks)
+
+# Get nested content (toggles, columns, etc.)
+blocks = client.get_all_block_children_recursive("page-id")
+
+# Create database entry with properties (using helpers)
+page = client.create_page(
+    parent_id="db-id",
+    title="New Task",
+    properties={
+        "Status": client.prop_select("Open"),
+        "Priority": client.prop_select("High"),
+        "Project": client.prop_relation(["project-id"]),
+        "Due Date": client.prop_date("2026-01-15"),
+        "Complete": client.prop_checkbox(False),
+    },
+    parent_type="database"
+)
+
+# Update a block
+client.update_block("block-id", {
+    "paragraph": {
+        "rich_text": [{"type": "text", "text": {"content": "Updated content"}}]
+    }
+})
+
+# Comments
+comments = client.list_comments("page-id")
+client.create_comment("page-id", "This is a comment")
+
+# Batch operations with progress callback
+def on_progress(current, total, result):
+    print(f"[{current}/{total}] {'✓' if result['success'] else '✗'}")
+
+# Create multiple entries
+entries = [
+    {"title": "Task 1", "properties": {"Status": client.prop_select("Open")}},
+    {"title": "Task 2", "properties": {"Priority": client.prop_select("High")}},
+]
+result = client.create_pages_batch("db-id", entries, on_progress=on_progress)
+print(f"Created: {result['success_count']}, Failed: {result['failure_count']}")
+
+# Update multiple pages
+updates = [
+    {"page_id": "id1", "properties": {"Status": client.prop_select("Done")}},
+    {"page_id": "id2", "icon": "✅"},
+]
+result = client.update_pages_batch(updates)
+
+# Delete multiple blocks
+result = client.delete_blocks_batch(["block-id-1", "block-id-2", "block-id-3"])
+```
+
+### Property Helpers
+For Python module usage, these helpers simplify property value construction:
+
+```python
+client.prop_title("Title text")      # title property
+client.prop_text("Rich text")        # rich_text property
+client.prop_select("Option")         # select property
+client.prop_multi_select(["A", "B"]) # multi_select property
+client.prop_date("2026-01-15")       # date property (ISO 8601)
+client.prop_relation(["id1", "id2"]) # relation property
+client.prop_checkbox(True)           # checkbox property
+client.prop_number(42.5)             # number property
+client.prop_url("https://...")       # url property
+client.prop_email("user@example.com")# email property
+client.prop_phone("+1234567890")     # phone_number property
 ```
 
 ---
@@ -363,9 +551,15 @@ The `markdown_to_blocks()` helper supports:
 - Code blocks: triple backticks with language
 - Quotes: `>`
 - Dividers: `---`
+- Tables: `| col | col |` with header row support
+- **Inline formatting:**
+  - `**bold**` → bold text
+  - `*italic*` → italic text
+  - `` `code` `` → inline code
+  - `~~strikethrough~~` → strikethrough text
+  - `[text](url)` → hyperlinks
 
 **Not supported** (create with JSON instead):
-- **Tables** - Markdown tables render as plain text. Use Notion `table` + `table_row` blocks
 - **Images** - Use `image` block type with URL
 
 ---
@@ -463,6 +657,34 @@ The `markdown_to_blocks()` helper supports:
 ---
 
 ## Changelog
+
+### 2026-01-08 (continued)
+- **Added:** Markdown table support in `markdown_to_blocks()`:
+  - Tables with `| col | col |` syntax are now converted to native Notion table blocks
+  - Header rows detected automatically (when followed by `|---|---|` separator)
+  - Inline formatting (bold, italic, links) works within table cells
+- **Added:** Batch operations for bulk imports and updates:
+  - `pages create-batch <db_id> --file entries.json` - Create multiple database entries
+  - `pages update-batch --file updates.json` - Update multiple pages
+  - `blocks delete-batch <id1> <id2>...` - Delete multiple blocks
+- **Feature:** Built-in rate limiting (~3 requests/second) for batch operations
+- **Feature:** Partial failure handling - operations continue on error with detailed failure reports
+- **Added:** Python methods: `create_pages_batch()`, `update_pages_batch()`, `delete_blocks_batch()`
+
+### 2026-01-08
+- **Added:** `blocks update` command to edit existing blocks:
+  `./run tool/notion_api.py blocks update <block_id> --type paragraph --content "New text"`
+- **Added:** `--recursive` flag to `blocks children` for fetching nested content (toggles, columns):
+  `./run tool/notion_api.py blocks children <page_id> --recursive`
+- **Added:** `comments` commands for listing and creating comments:
+  - `./run tool/notion_api.py comments list <page_id>`
+  - `./run tool/notion_api.py comments create <page_id> --content "Comment text"`
+- **Added:** `--properties` flag to `pages create` for setting database entry properties:
+  `./run tool/notion_api.py pages create <db_id> --database --title "Task" --properties '{...}'`
+- **Enhanced:** Inline markdown parsing now supports `**bold**`, `*italic*`, `` `code` ``,
+  and `~~strikethrough~~` with proper Notion annotations (no more asterisks showing in output)
+- **Added:** Property helper methods for Python module: `prop_select()`, `prop_relation()`,
+  `prop_date()`, `prop_checkbox()`, `prop_number()`, `prop_url()`, `prop_email()`, `prop_phone()`
 
 ### 2026-01-09
 - **Added:** `--after <block_id>` parameter to `blocks append` command. Allows inserting
