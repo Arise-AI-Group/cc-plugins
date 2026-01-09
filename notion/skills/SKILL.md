@@ -175,9 +175,14 @@ The `id` field in the returned `data_source` object is the data source ID.
 
 ### Append Content
 ```bash
-# Append markdown
+# Append markdown (at end of page)
 ./run tool/notion_api.py blocks append <page_id> \
   --content "## New Section\n\nAdded paragraph."
+
+# Insert after a specific block (use --after to control position)
+./run tool/notion_api.py blocks append <page_id> \
+  --content "Inserted content" \
+  --after <block_id>
 
 # Append from file
 ./run tool/notion_api.py blocks append <page_id> \
@@ -186,6 +191,11 @@ The `id` field in the returned `data_source` object is the data source ID.
 # Append raw JSON blocks
 ./run tool/notion_api.py blocks append <page_id> \
   --json '[{"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": "Hello"}}]}}]'
+
+# Insert JSON blocks at specific position
+./run tool/notion_api.py blocks append <page_id> \
+  --json '[...]' \
+  --after <block_id>
 ```
 
 ### Delete Block
@@ -453,6 +463,11 @@ The `markdown_to_blocks()` helper supports:
 ---
 
 ## Changelog
+
+### 2026-01-09
+- **Added:** `--after <block_id>` parameter to `blocks append` command. Allows inserting
+  blocks after a specific block instead of always appending to the end of the page.
+  Usage: `./run tool/notion_api.py blocks append <page_id> --content "..." --after <block_id>`
 
 ### 2026-01-06
 - **Added:** `data_sources` CLI commands for schema modifications:

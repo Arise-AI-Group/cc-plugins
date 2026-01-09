@@ -22,7 +22,7 @@ Usage (CLI):
 
     ./run tool/notion_api.py blocks get <block_id>
     ./run tool/notion_api.py blocks children <block_id> [--as-markdown]
-    ./run tool/notion_api.py blocks append <parent_id> --content "Markdown"
+    ./run tool/notion_api.py blocks append <parent_id> --content "Markdown" [--after <block_id>]
     ./run tool/notion_api.py blocks delete <block_id>
 
     ./run tool/notion_api.py search <query> [--filter pages|databases]
@@ -488,7 +488,8 @@ class NotionClient:
     def append_block_children(
         self,
         block_id: str,
-        children: List[Dict]
+        children: List[Dict],
+        after: str = None
     ) -> Dict:
         """
         Append children blocks to a block/page.
@@ -496,14 +497,22 @@ class NotionClient:
         Args:
             block_id: Parent block or page ID
             children: List of block objects to append
+            after: Block ID to insert after (optional). If provided, new blocks
+                   are inserted after this block instead of at the end.
 
         Returns:
             Response with created blocks
         """
+        params = {
+            "block_id": block_id,
+            "children": children
+        }
+        if after:
+            params["after"] = after
+
         return self._request(
             self.client.blocks.children.append,
-            block_id=block_id,
-            children=children
+            **params
         )
 
     def update_block(self, block_id: str, block_data: Dict) -> Dict:
@@ -912,6 +921,7 @@ def build_parser() -> argparse.ArgumentParser:
     blocks_append.add_argument("--content", help="Markdown content")
     blocks_append.add_argument("--content-file", help="File with markdown content")
     blocks_append.add_argument("--json", help="Block JSON directly")
+    blocks_append.add_argument("--after", help="Block ID to insert after (instead of appending at end)")
 
     # blocks delete
     blocks_delete = blocks_sub.add_parser("delete", help="Delete a block")
@@ -1117,8 +1127,13 @@ def main():
                     print("Error: --content, --content-file, or --json required", file=sys.stderr)
                     sys.exit(1)
 
-                response = client.append_block_children(args.block_id, children)
-                print(f"Appended {len(children)} block(s)", file=sys.stderr)
+                response = client.append_block_children(
+                    args.block_id,
+                    children,
+                    after=getattr(args, 'after', None)
+                )
+                location = f"after {args.after}" if getattr(args, 'after', None) else "at end"
+                print(f"Appended {len(children)} block(s) {location}", file=sys.stderr)
                 print(json.dumps(response, indent=2))
 
             elif args.action == "delete":
