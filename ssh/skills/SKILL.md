@@ -63,8 +63,10 @@ For HIGH/CRITICAL:
 
 ### Environment Variables
 
+Credentials are loaded from `~/.config/cc-plugins/.env`. At least one is required:
+
 ```bash
-# At least one required:
+# In ~/.config/cc-plugins/.env
 SSH_KEY_PATH=/path/to/private/key   # Preferred: SSH key authentication
 SSH_PASSWORD=your_password          # Fallback: password authentication
 ```
