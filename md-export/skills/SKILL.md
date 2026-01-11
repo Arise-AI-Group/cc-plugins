@@ -1,6 +1,6 @@
 ---
 name: md-export
-description: Export markdown to Google Docs and Word documents with Mermaid diagram rendering. Use when the user asks about md-export operations, management, or automation.
+description: This skill should be used when the user asks to "export to Google Docs", "convert markdown to Word", "create document from markdown", "export as docx". Exports markdown to Google Docs and Word documents with Mermaid diagram rendering.
 ---
 
 # Markdown to Document Directive

@@ -1,6 +1,6 @@
 ---
 name: slack
-description: Slack channel and message management - create channels, retrieve messages, manage pins, canvases, and user groups. Use when the user asks about slack operations, management, or automation.
+description: This skill should be used when the user asks to "create a Slack channel", "get messages from channel", "summarize what happened in #channel", "pin message", "set up channel canvas", "list Slack channels". Provides Slack channel and message management with pins, canvases, and user groups.
 ---
 
 # Slack Management

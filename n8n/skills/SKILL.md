@@ -1,6 +1,6 @@
 ---
 name: n8n
-description: Manage n8n workflows - list, deploy, activate, execute, and monitor. Use when the user asks about n8n operations, management, or automation.
+description: This skill should be used when the user asks to "deploy n8n workflow", "list workflows", "activate workflow", "run workflow", "check workflow status". Manages n8n workflows - deploy, activate, execute, and monitor.
 ---
 
 # n8n Workflow Management

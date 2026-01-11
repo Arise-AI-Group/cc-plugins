@@ -1,6 +1,6 @@
 ---
 name: leads
-description: Scrape and verify sales leads via Apify, upload to Google Sheets. Use when the user asks about leads operations, management, or automation.
+description: This skill should be used when the user asks to "scrape leads", "find businesses in area", "get sales leads", "search for companies". Scrapes and verifies sales leads via Apify and uploads to Google Sheets.
 ---
 
 # Scrape Leads Directive

@@ -1,6 +1,6 @@
 ---
 name: proposal
-description: Generate sales proposals and create Google Slides presentations from templates. Use when the user asks about proposal operations, management, or automation.
+description: This skill should be used when the user asks to "create proposal for client", "generate sales proposal", "make presentation for prospect", "build proposal deck". Generates sales proposals and creates Google Slides presentations from templates.
 ---
 
 # Generate Proposal Directive

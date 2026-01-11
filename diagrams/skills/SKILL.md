@@ -1,6 +1,6 @@
 ---
 name: diagrams
-description: Generate diagrams in Draw.io, Mermaid, and ASCII formats from JSON or natural language. Use when the user asks about diagrams operations, management, or automation.
+description: This skill should be used when the user asks to "create a diagram", "generate flowchart", "make architecture diagram", "draw sequence diagram", "create ASCII diagram". Generates diagrams in Draw.io, Mermaid, and ASCII formats.
 ---
 
 # Generate Diagram Directive

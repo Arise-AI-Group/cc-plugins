@@ -1,6 +1,6 @@
 ---
 name: sop
-description: Audio transcription and SOP extraction - convert interviews and recordings into structured procedures. Use when the user asks about sop operations, management, or automation.
+description: This skill should be used when the user asks to "transcribe audio", "create SOP from recording", "extract procedure from interview", "write standard operating procedure". Converts audio recordings into structured SOPs.
 ---
 
 # Writing SOPs Directive

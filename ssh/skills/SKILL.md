@@ -1,6 +1,6 @@
 ---
 name: ssh
-description: Execute commands and transfer files on remote servers via SSH/SFTP. Use when the user asks about ssh operations, management, or automation.
+description: This skill should be used when the user asks to "run command on server", "SSH to remote", "transfer file via SFTP", "execute remotely", "upload file to server". Executes commands and transfers files on remote servers via SSH/SFTP.
 ---
 
 # SSH Operations Runbook

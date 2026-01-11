@@ -1,6 +1,6 @@
 ---
 name: client-onboarding
-description: Set up Slack channels and resources for new clients. Use when the user asks about client-onboarding operations, management, or automation.
+description: This skill should be used when the user asks to "onboard new client", "set up client channels", "create channels for client", "onboard [client name]". Automates Slack channel and resource setup for new clients.
 ---
 
 # Client Onboarding

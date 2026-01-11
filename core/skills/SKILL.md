@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Interactive onboarding for CC-Plugins. Detects installed plugins and configures required API credentials.
+description: This skill should be used when the user asks to "set up cc-plugins", "configure credentials", "add API keys", "initialize plugins". Provides interactive onboarding that detects installed plugins and configures required credentials.
 ---
 
 # CC-Plugins Setup
