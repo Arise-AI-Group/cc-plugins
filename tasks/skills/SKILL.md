@@ -47,59 +47,96 @@ Parse what the user provided:
 - Due date (look for: dates, tomorrow, Friday, next week, EOD, EOW)
 - Task type hints ("personal", "private", "my task" vs "agency", "team", project names)
 
-### Step 2: Prompt for Task Type
-**Always ask** whether this is a private or agency task using `AskUserQuestion`:
+### Required Fields Checklist
+Before calling the CLI, you MUST have ALL of these fields:
 
-```
-Question: "What type of task is this?"
-Options:
-- "Private (Recommended)" - Personal task in your private database
-- "Agency" - Team/project task in shared agency database
+**Private Tasks:**
+- Title (from user request)
+- Task Type (private/agency)
+- Assignee (who to assign)
+- Priority (urgent/high/medium/low)
+- Due Date (always required)
+
+**Agency Tasks (additional):**
+- Project (which project)
+
+### Step 2: Prompt for ALL Missing Fields at Once
+
+**CRITICAL: Batch all missing field questions into a SINGLE AskUserQuestion call (up to 4 questions).**
+
+Gather all missing required fields in one prompt. Skip only fields the user explicitly provided.
+
+**Example AskUserQuestion for typical task creation:**
+```json
+{
+  "questions": [
+    {
+      "question": "What type of task is this?",
+      "header": "Task type",
+      "options": [
+        {"label": "Private (Recommended)", "description": "Personal task in your private database"},
+        {"label": "Agency", "description": "Team/project task in shared agency database"}
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Who should this task be assigned to?",
+      "header": "Assignee",
+      "options": [
+        {"label": "Me", "description": "Assign to yourself"},
+        {"label": "Someone else", "description": "Specify a different person"}
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What priority level?",
+      "header": "Priority",
+      "options": [
+        {"label": "Medium", "description": "Default for routine tasks"},
+        {"label": "Low", "description": "Can be done when time permits"},
+        {"label": "High", "description": "Should be done soon"},
+        {"label": "Urgent", "description": "Needs immediate attention"}
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "When is this task due?",
+      "header": "Due date",
+      "options": [
+        {"label": "Today", "description": "Due by end of day"},
+        {"label": "Tomorrow", "description": "Due tomorrow"},
+        {"label": "This week (Friday)", "description": "Due by end of week"},
+        {"label": "Next week", "description": "Due in 7 days"}
+      ],
+      "multiSelect": false
+    }
+  ]
+}
 ```
 
-Skip this step ONLY if the user explicitly said "agency task" or "private task".
-
-### Step 3: Prompt for Missing Required Fields
-For each missing field, use `AskUserQuestion` to gather information:
-
-**Assignee** (if missing):
-```
-Question: "Who should this task be assigned to?"
-Options:
-- "Me" - Assign to yourself
-- "Someone else" - Specify a different person
-```
-
-**Priority** (if missing):
-```
-Question: "What priority level?"
-Options:
-- "Medium" - Default for routine tasks
-- "Low" - Can be done when time permits
-- "High" - Should be done soon
-- "Urgent" - Needs immediate attention
-```
-
-**Due Date** (if missing - REQUIRED, always prompt):
-```
-Question: "When is this task due?"
-Options:
-- "Today" - Due by end of day
-- "Tomorrow" - Due tomorrow
-- "This week (Friday)" - Due by end of week
-- "Next week" - Due in 7 days
+**For agency tasks**, if Project is missing, ask in a follow-up AskUserQuestion after fetching available projects:
+```bash
+./run tool/tasks_api.py projects list
 ```
 
 **Note:** Due date is always required. There is no "no due date" option.
 
-**Project** (for agency tasks only, if missing):
-```
-Question: "Which project is this task for?"
-Options: [List available projects from `./run tool/tasks_api.py projects list`]
-```
+### Step 3: Validate Before Creating
+
+Before calling the CLI, verify you have ALL required fields:
+1. **Title** - extracted from user request
+2. **Task type** - private or agency
+3. **Assignee** - resolved to valid user name (use `users list` if "Me" selected)
+4. **Priority** - one of: Urgent, High, Medium, Low
+5. **Due date** - in acceptable format
+
+For agency tasks, also verify:
+6. **Project** - resolved to valid project name
+
+**DO NOT call the CLI if any required field is missing.**
 
 ### Step 4: Create the Task
-Once all required fields are gathered, call the CLI with the complete information.
+Once all fields are validated, call the CLI with complete information.
 
 ## Setup
 

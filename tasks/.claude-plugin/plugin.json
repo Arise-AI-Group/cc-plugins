@@ -1,7 +1,7 @@
 {
   "name": "tasks",
   "description": "Create and manage tasks in Notion - personal and agency workflows with field validation",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": {
     "name": "Arise Group"
   }
