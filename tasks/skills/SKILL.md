@@ -6,8 +6,10 @@ description: This skill should be used when the user asks to "create a task", "a
 # Task Management
 
 ## Execution Method
-**Use the task-creator agent** for interactive task creation with validation.
-**Use Python CLI** for direct operations: `tool/tasks_api.py`
+**Use Python CLI** for all operations: `tool/tasks_api.py`
+
+**IMPORTANT: Interactive Prompting Required**
+When creating tasks, ALWAYS use `AskUserQuestion` to prompt for missing information before calling the CLI. Never fail with "missing required fields" - instead, ask the user.
 
 ## Purpose
 Manage tasks in Notion databases with proper field validation. Supports two database types:
@@ -32,6 +34,72 @@ Manage tasks in Notion databases with proper field validation. Supports two data
 - "Change priority to..."
 - "Reassign task to..."
 - "Prioritize my day"
+
+## Interactive Task Creation Workflow
+
+When a user asks to create a task, follow this workflow:
+
+### Step 1: Extract Information from User Request
+Parse what the user provided:
+- Title/description
+- Assignee (if mentioned)
+- Priority (look for: urgent, high, medium, low, critical, p0-p3)
+- Due date (look for: dates, tomorrow, Friday, next week, EOD, EOW)
+- Task type hints ("personal", "private", "my task" vs "agency", "team", project names)
+
+### Step 2: Prompt for Task Type
+**Always ask** whether this is a private or agency task using `AskUserQuestion`:
+
+```
+Question: "What type of task is this?"
+Options:
+- "Private (Recommended)" - Personal task in your private database
+- "Agency" - Team/project task in shared agency database
+```
+
+Skip this step ONLY if the user explicitly said "agency task" or "private task".
+
+### Step 3: Prompt for Missing Required Fields
+For each missing field, use `AskUserQuestion` to gather information:
+
+**Assignee** (if missing):
+```
+Question: "Who should this task be assigned to?"
+Options:
+- "Me" - Assign to yourself
+- "Someone else" - Specify a different person
+```
+
+**Priority** (if missing):
+```
+Question: "What priority level?"
+Options:
+- "Medium" - Default for routine tasks
+- "Low" - Can be done when time permits
+- "High" - Should be done soon
+- "Urgent" - Needs immediate attention
+```
+
+**Due Date** (if missing - REQUIRED, always prompt):
+```
+Question: "When is this task due?"
+Options:
+- "Today" - Due by end of day
+- "Tomorrow" - Due tomorrow
+- "This week (Friday)" - Due by end of week
+- "Next week" - Due in 7 days
+```
+
+**Note:** Due date is always required. There is no "no due date" option.
+
+**Project** (for agency tasks only, if missing):
+```
+Question: "Which project is this task for?"
+Options: [List available projects from `./run tool/tasks_api.py projects list`]
+```
+
+### Step 4: Create the Task
+Once all required fields are gathered, call the CLI with the complete information.
 
 ## Setup
 
@@ -105,6 +173,8 @@ cd /Users/trent/Documents/arise/cc-plugins/tasks && ./run tool/tasks_api.py crea
 ```
 
 ## Required Fields
+
+**All fields marked "Yes" are mandatory - always prompt for missing fields.**
 
 | Field | Private | Agency | Type |
 |-------|---------|--------|------|
