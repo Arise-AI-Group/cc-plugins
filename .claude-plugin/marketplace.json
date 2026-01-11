@@ -68,6 +68,11 @@
       "description": "Audio transcription and SOP extraction - convert interviews and recordings into structured procedures"
     },
     {
+      "name": "tasks",
+      "source": "./tasks",
+      "description": "Create and manage tasks in Notion - personal and agency workflows with field validation"
+    },
+    {
       "name": "ssh",
       "source": "./ssh",
       "description": "Execute commands and transfer files on remote servers via SSH/SFTP"
