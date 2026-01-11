@@ -60,7 +60,31 @@ Manage Notion pages, databases, and content blocks via the API. Use this for doc
 
 **Direct workflow for pushing local markdown files to Notion.**
 
-### Create New Page from Markdown File
+### Workflow for Database Entries
+
+When importing to a Notion **database** (not just a page), follow this workflow:
+
+1. **Get database schema first:**
+   ```bash
+   ./run tool/notion_api.py databases get <database_id>
+   ```
+
+2. **Review properties** - Identify required/optional fields (Status, Tags, Category, etc.)
+
+3. **Extract metadata from document** - Title from `# heading`, tags from content, etc.
+
+4. **Prompt user for uncertain fields** - Ask about Status, Category, or other selects that can't be inferred
+
+5. **Create entry with properties:**
+   ```bash
+   ./run tool/notion_api.py pages create <database_id> \
+     --title "Document Title" \
+     --database \
+     --content-file /path/to/document.md \
+     --properties '{"Status": {"select": {"name": "Draft"}}, "Category": {"select": {"name": "Documentation"}}}'
+   ```
+
+### Create Page Under Parent (Non-Database)
 
 ```bash
 cd /Users/trent/Documents/arise/cc-plugins/notion
