@@ -58,7 +58,7 @@ Required fields:
 First, check if the user has configured their private database:
 
 ```bash
-./run tool/tasks_api.py config show
+tasks/run tool/tasks_api.py config show
 ```
 
 If `configured` is `false`, tell the user to run `/tasks-setup` first for private tasks.
@@ -73,9 +73,13 @@ Extract from the user's request:
 - Task type hints ("personal", "private", "my task" vs "agency", "team", "project")
 
 ### Step 3: Determine Task Type
-- If user mentions "agency", "team", "project", or a specific project name -> **agency task**
+- If user mentions "agency", "team", or a specific project name -> **agency task**
 - If user mentions "personal", "private", "my task" -> **private task**
-- If unclear -> **ASK the user**
+- If unclear -> **ASK the user** using AskUserQuestion with "Private" as the first (default) option:
+  - "Private" - Personal task in your private database (Recommended)
+  - "Agency" - Team/project task in shared agency database
+
+**Default to private** when scope is ambiguous.
 
 ### Step 4: Validate and Prompt for Missing Fields
 For each missing required field, ask ONE question at a time using AskUserQuestion:
@@ -89,17 +93,17 @@ Before creating, resolve names to IDs:
 
 ```bash
 # Look up available users
-./run tool/tasks_api.py users list
+tasks/run tool/tasks_api.py users list
 
 # Look up available projects (for agency tasks)
-./run tool/tasks_api.py projects list
+tasks/run tool/tasks_api.py projects list
 ```
 
 ### Step 6: Create the Task
 
 **Create private task:**
 ```bash
-./run tool/tasks_api.py create private \
+tasks/run tool/tasks_api.py create private \
   --title "Task title here" \
   --assignee "User Name" \
   --priority "High" \
@@ -108,7 +112,7 @@ Before creating, resolve names to IDs:
 
 **Create agency task:**
 ```bash
-./run tool/tasks_api.py create agency \
+tasks/run tool/tasks_api.py create agency \
   --title "Task title here" \
   --assignee "User Name" \
   --priority "High" \
@@ -147,13 +151,13 @@ The API accepts flexible priority input:
 
 ## Example Interactions
 
-**Example 1: Complete information provided**
+**Example 1: Complete information provided but scope unclear**
 User: "Create a high priority task for Sarah to review the Q4 report by Friday"
 - Title: "Review the Q4 report"
 - Assignee: Sarah
 - Priority: High
 - Due: Friday
-- Type: Need to ask (no indication of private vs agency)
+- Type: Ask user (Private recommended, Agency as option)
 
 **Example 2: Missing fields**
 User: "Add a task to finish the design mockups"
@@ -161,7 +165,7 @@ User: "Add a task to finish the design mockups"
 - Assignee: MISSING -> Ask
 - Priority: MISSING -> Ask
 - Due: MISSING -> Ask
-- Type: Need to ask
+- Type: Ask user (Private recommended, Agency as option)
 
 **Example 3: Agency task indicated**
 User: "Create an agency task for the Acme project - update the API docs"
