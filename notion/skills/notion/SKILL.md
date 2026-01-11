@@ -1,6 +1,6 @@
 ---
 name: notion
-description: This skill should be used when the user asks to "create a Notion page", "query the database", "add content to Notion", "search Notion for", "export page content", "update database entry". Provides Notion API integration for pages, databases, blocks, and search.
+description: This skill should be used when the user asks to "create a Notion page", "query the database", "add content to Notion", "search Notion for", "export page content", "update database entry", "push markdown to Notion", "import document to Notion", "sync README to Notion". Provides Notion API integration for pages, databases, blocks, and markdown import.
 ---
 
 # Notion Management
@@ -25,6 +25,10 @@ Manage Notion pages, databases, and content blocks via the API. Use this for doc
 - "Update the database entry"
 - "List items in the Notion database"
 - "Export page content"
+- "Push this markdown to Notion"
+- "Import the README to Notion"
+- "Sync this document to Notion"
+- "Create a Notion page from this file"
 
 ---
 
@@ -49,6 +53,76 @@ Manage Notion pages, databases, and content blocks via the API. Use this for doc
 - Page creation/editing
 - Block manipulation
 - Search operations
+
+---
+
+## Import Markdown to Notion
+
+**Direct workflow for pushing local markdown files to Notion.**
+
+### Create New Page from Markdown File
+
+```bash
+cd /Users/trent/Documents/arise/cc-plugins/notion
+
+# Create page from local markdown file
+./run tool/notion_api.py pages create <parent_page_id> \
+  --title "Document Title" \
+  --content-file /path/to/document.md
+
+# With icon
+./run tool/notion_api.py pages create <parent_page_id> \
+  --title "README" \
+  --content-file ./README.md \
+  --icon "📄"
+```
+
+### Append to Existing Page
+
+```bash
+# Append markdown to end of page
+./run tool/notion_api.py blocks append <page_id> \
+  --content-file /path/to/content.md
+
+# Insert after specific block
+./run tool/notion_api.py blocks append <page_id> \
+  --content-file /path/to/content.md \
+  --after <block_id>
+```
+
+### Supported Markdown Features
+
+| Feature | Syntax | Notion Block |
+|---------|--------|--------------|
+| Headings | `# ## ###` | heading_1/2/3 |
+| Bullet lists | `- item` | bulleted_list_item |
+| Numbered lists | `1. item` | numbered_list_item |
+| Checkboxes | `- [ ] task` | to_do |
+| Code blocks | ``` `language` ``` | code |
+| Quotes | `> text` | quote |
+| Dividers | `---` | divider |
+| Tables | `\| col \| col \|` | table |
+| **Bold** | `**text**` | bold annotation |
+| *Italic* | `*text*` | italic annotation |
+| `Code` | `` `text` `` | code annotation |
+| ~~Strike~~ | `~~text~~` | strikethrough |
+| [Links](url) | `[text](url)` | hyperlink |
+
+### Not Supported (use JSON blocks)
+
+- **Images** - Use `--json` with image block type
+- **Nested lists** - Partially supported
+- **HTML** - Stripped out
+
+### Example: Push Plugin README to Notion
+
+```bash
+# Push tasks plugin documentation to Notion
+./run tool/notion_api.py pages create 2d5e7406-6c7d-xxxx \
+  --title "Tasks Plugin" \
+  --content-file /Users/trent/Documents/arise/cc-plugins/tasks/README.md \
+  --icon "✅"
+```
 
 ---
 
