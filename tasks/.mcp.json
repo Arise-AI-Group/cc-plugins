@@ -1,0 +1,7 @@
+{
+  "tasks": {
+    "command": "${CLAUDE_PLUGIN_ROOT}/.venv/bin/python",
+    "args": ["-m", "tool.mcp_server"],
+    "cwd": "${CLAUDE_PLUGIN_ROOT}"
+  }
+}
