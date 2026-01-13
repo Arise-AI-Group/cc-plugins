@@ -192,7 +192,7 @@ def list_users() -> dict:
 @mcp.tool
 def get_me() -> dict:
     """Get the current bot user."""
-    return get_client().get_me()
+    return get_client().get_bot_user()
 
 
 if __name__ == "__main__":
