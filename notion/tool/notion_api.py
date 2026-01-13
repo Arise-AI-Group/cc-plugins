@@ -217,8 +217,8 @@ class NotionClient:
             parent = {"database_id": parent_id}
             if properties is None:
                 properties = {}
-            if "title" not in properties and "Name" not in properties:
-                properties["Name"] = {"title": [{"text": {"content": title}}]}
+            if "title" not in properties:
+                properties["title"] = {"title": [{"text": {"content": title}}]}
         else:
             parent = {"page_id": parent_id}
             properties = {
@@ -1137,8 +1137,8 @@ class NotionClient:
                 icon = entry.get("icon")
 
                 # Ensure title is set in properties
-                if "Name" not in properties and "title" not in properties:
-                    properties["Name"] = {"title": [{"text": {"content": title}}]}
+                if "title" not in properties:
+                    properties["title"] = {"title": [{"text": {"content": title}}]}
 
                 children = None
                 if content:
@@ -1519,8 +1519,8 @@ def main():
                 if getattr(args, 'properties', None):
                     properties = json.loads(args.properties)
                     # Ensure title is set
-                    if "Name" not in properties and "title" not in properties:
-                        properties["Name"] = {"title": [{"text": {"content": args.title}}]}
+                    if "title" not in properties:
+                        properties["title"] = {"title": [{"text": {"content": args.title}}]}
 
                 page = client.create_page(
                     parent_id=args.parent_id,

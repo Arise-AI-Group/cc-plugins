@@ -445,7 +445,7 @@ class TasksClient:
 
         # Build properties
         properties = {
-            PROPERTY_NAMES["title"]: {
+            "title": {
                 "title": [{"text": {"content": validated["title"]}}]
             },
             PROPERTY_NAMES["assignee"]: {
@@ -514,7 +514,7 @@ class TasksClient:
         properties = {}
 
         if title is not None:
-            properties[PROPERTY_NAMES["title"]] = {
+            properties["title"] = {
                 "title": [{"text": {"content": title.strip()}}]
             }
 
