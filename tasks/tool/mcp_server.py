@@ -69,12 +69,12 @@ def query_tasks(
         priority: Filter by priority level
         project: Filter by project name (agency only)
     """
-    return get_client().query_tasks(
+    return {"tasks": get_client().query_tasks(
         task_type=task_type,
         assignee=assignee,
         priority=priority,
         project=project,
-    )
+    )}
 
 
 @mcp.tool

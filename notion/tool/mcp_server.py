@@ -177,7 +177,7 @@ def search(query: str, filter_type: Optional[str] = None) -> dict:
         query: Search query
         filter_type: Optional "page" or "database" filter
     """
-    return get_client().search(query, filter=filter_type)
+    return {"results": get_client().search(query, filter_type=filter_type)}
 
 
 # === Users ===
@@ -186,7 +186,7 @@ def search(query: str, filter_type: Optional[str] = None) -> dict:
 @mcp.tool
 def list_users() -> dict:
     """List all users in the workspace."""
-    return get_client().list_users()
+    return {"users": get_client().list_users()}
 
 
 @mcp.tool
