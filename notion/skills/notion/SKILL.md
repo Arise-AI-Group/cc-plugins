@@ -222,14 +222,39 @@ For exhaustive CLI commands, see [references/cli-reference.md](references/cli-re
 
 **IMPORTANT:** For adding or modifying database properties (schema changes), use `data_sources update` instead of `databases update`. The legacy endpoint often fails silently.
 
+### Multi-Source Databases (API 2025-09-03+)
+
+Notion now supports **multi-source databases** where a single database can contain multiple data sources, each with its own schema. For most single-source databases, the existing commands work unchanged.
+
 ```bash
-# Get full schema
+# List data sources for a database
+./run tool/notion_api.py data_sources list <database_id>
+
+# Get full schema for a specific data source
 ./run tool/notion_api.py data_sources get <data_source_id>
 
-# Add properties
+# Add properties to a data source
 ./run tool/notion_api.py data_sources update <data_source_id> \
   --properties '{"Priority": {"select": {"options": [{"name": "High"}]}}}'
 ```
+
+### Working with Multi-Source Databases
+
+When a database has multiple data sources, you can specify which one to use:
+
+```bash
+# Create page in specific data source
+./run tool/notion_api.py pages create <database_id> \
+  --title "New Entry" \
+  --database \
+  --data-source-id <data_source_id>
+
+# Query specific data source
+./run tool/notion_api.py databases query <database_id> \
+  --data-source-id <data_source_id>
+```
+
+**Note:** For single-source databases (the common case), you don't need to specify `--data-source-id`. The plugin automatically uses the primary data source.
 
 For details on data sources vs databases, see [references/api-limitations.md](references/api-limitations.md).
 

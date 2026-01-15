@@ -19,6 +19,7 @@ Usage (CLI):
     ./run tool/notion_api.py databases create <parent_id> --title "Title" --properties JSON
     ./run tool/notion_api.py databases update <database_id> --properties JSON  # Legacy, may not work
 
+    ./run tool/notion_api.py data_sources list <database_id>
     ./run tool/notion_api.py data_sources get <data_source_id>
     ./run tool/notion_api.py data_sources update <data_source_id> --properties JSON
 
@@ -197,7 +198,8 @@ class NotionClient:
         properties: Dict = None,
         children: List[Dict] = None,
         icon: str = None,
-        parent_type: str = "page"
+        parent_type: str = "page",
+        data_source_id: str = None
     ) -> Dict:
         """
         Create a new page.
@@ -209,12 +211,18 @@ class NotionClient:
             children: Initial content blocks
             icon: Page icon (emoji)
             parent_type: "page" or "database"
+            data_source_id: For multi-source databases (API 2025-09-03+), specify
+                           which data source to create the page in. If not provided,
+                           auto-detects the primary data source.
 
         Returns:
             Created page object
         """
         if parent_type == "database":
             parent = {"database_id": parent_id}
+            # For multi-source databases, include data_source_id
+            if data_source_id:
+                parent["data_source_id"] = data_source_id
             if properties is None:
                 properties = {}
             if "title" not in properties:
@@ -287,23 +295,30 @@ class NotionClient:
         filter: Dict = None,
         sorts: List[Dict] = None,
         page_size: int = 100,
-        start_cursor: str = None
+        start_cursor: str = None,
+        data_source_id: str = None
     ) -> Dict:
         """
         Query a database with optional filtering and sorting.
 
         Args:
-            database_id: Database to query
+            database_id: Database to query (used if data_source_id not provided)
             filter: Filter conditions (Notion filter object)
             sorts: Sort conditions
             page_size: Results per page
             start_cursor: Pagination cursor
+            data_source_id: For multi-source databases (API 2025-09-03+), specify
+                           which data source to query. If not provided, uses
+                           database_id directly (works for single-source databases).
 
         Returns:
             Query results with results, has_more, next_cursor
         """
+        # Use explicit data_source_id if provided, otherwise use database_id
+        resolved_ds_id = data_source_id if data_source_id else database_id
+
         params = {
-            "data_source_id": database_id,
+            "data_source_id": resolved_ds_id,
             "page_size": min(page_size, 100)
         }
 
@@ -321,7 +336,8 @@ class NotionClient:
         self,
         database_id: str,
         filter: Dict = None,
-        sorts: List[Dict] = None
+        sorts: List[Dict] = None,
+        data_source_id: str = None
     ) -> List[Dict]:
         """
         Query all entries from a database (handles pagination).
@@ -330,6 +346,7 @@ class NotionClient:
             database_id: Database to query
             filter: Filter conditions
             sorts: Sort conditions
+            data_source_id: For multi-source databases, specify which data source
 
         Returns:
             List of all matching entries
@@ -342,7 +359,8 @@ class NotionClient:
                 database_id=database_id,
                 filter=filter,
                 sorts=sorts,
-                start_cursor=cursor
+                start_cursor=cursor,
+                data_source_id=data_source_id
             )
             all_results.extend(response.get("results", []))
 
@@ -469,6 +487,63 @@ class NotionClient:
             params["properties"] = properties
 
         return self._request(self.client.data_sources.update, **params)
+
+    def list_database_data_sources(self, database_id: str) -> List[Dict]:
+        """
+        List all data sources for a database.
+
+        For single-source databases, returns a list with one data source.
+        For multi-source databases (API 2025-09-03+), returns all data sources.
+
+        Args:
+            database_id: Database ID to get data sources for
+
+        Returns:
+            List of data source objects with 'id' and 'name' keys
+        """
+        db = self.get_database(database_id)
+        return db.get("data_sources", [])
+
+    def get_primary_data_source_id(self, database_id: str) -> str:
+        """
+        Get the primary (first) data source ID for a database.
+
+        For single-source databases, this returns the only data source.
+        For multi-source databases, returns the first/default one.
+
+        Args:
+            database_id: Database ID
+
+        Returns:
+            Data source ID string
+        """
+        data_sources = self.list_database_data_sources(database_id)
+        if data_sources:
+            return data_sources[0]["id"]
+        # Fallback for backward compatibility with older API responses
+        return database_id
+
+    def resolve_data_source_id(
+        self,
+        database_id: str,
+        data_source_id: str = None
+    ) -> str:
+        """
+        Resolve the data source ID to use for operations.
+
+        If data_source_id is provided, use it directly.
+        Otherwise, auto-detect by fetching the primary data source.
+
+        Args:
+            database_id: Database ID (container)
+            data_source_id: Optional explicit data source ID
+
+        Returns:
+            Resolved data source ID
+        """
+        if data_source_id:
+            return data_source_id
+        return self.get_primary_data_source_id(database_id)
 
     # ==================== Block Operations ====================
 
@@ -1335,6 +1410,7 @@ def build_parser() -> argparse.ArgumentParser:
                               help="Parent is a database")
     pages_create.add_argument("--icon", help="Emoji icon")
     pages_create.add_argument("--properties", help="Additional properties JSON (for database entries)")
+    pages_create.add_argument("--data-source-id", help="For multi-source databases, specify data source ID")
 
     # pages update
     pages_update = pages_sub.add_parser("update", help="Update a page")
@@ -1377,6 +1453,7 @@ def build_parser() -> argparse.ArgumentParser:
     db_query.add_argument("--sorts", help="Sorts JSON")
     db_query.add_argument("--limit", type=int, default=100, help="Max results")
     db_query.add_argument("--all", action="store_true", help="Fetch all results (paginate)")
+    db_query.add_argument("--data-source-id", help="For multi-source databases, specify data source ID")
 
     # databases create
     db_create = db_sub.add_parser("create", help="Create a database")
@@ -1394,6 +1471,10 @@ def build_parser() -> argparse.ArgumentParser:
     # === Data Sources ===
     ds_parser = subparsers.add_parser("data_sources", help="Data source operations (for schema updates)")
     ds_sub = ds_parser.add_subparsers(dest="action")
+
+    # data_sources list
+    ds_list = ds_sub.add_parser("list", help="List data sources for a database")
+    ds_list.add_argument("database_id", help="Database ID to list data sources for")
 
     # data_sources get
     ds_get = ds_sub.add_parser("get", help="Get data source by ID")
@@ -1528,7 +1609,8 @@ def main():
                     properties=properties,
                     children=children,
                     icon=args.icon,
-                    parent_type=parent_type
+                    parent_type=parent_type,
+                    data_source_id=getattr(args, 'data_source_id', None)
                 )
                 print(f"Created page: {page.get('id')}", file=sys.stderr)
                 print(json.dumps(page, indent=2))
@@ -1631,12 +1713,14 @@ def main():
             elif args.action == "query":
                 filter_obj = json.loads(args.filter) if args.filter else None
                 sorts_obj = json.loads(args.sorts) if args.sorts else None
+                ds_id = getattr(args, 'data_source_id', None)
 
                 if args.all:
                     results = client.query_database_all(
                         database_id=args.database_id,
                         filter=filter_obj,
-                        sorts=sorts_obj
+                        sorts=sorts_obj,
+                        data_source_id=ds_id
                     )
                     print(f"Found {len(results)} entries", file=sys.stderr)
                     print(json.dumps(results, indent=2))
@@ -1645,7 +1729,8 @@ def main():
                         database_id=args.database_id,
                         filter=filter_obj,
                         sorts=sorts_obj,
-                        page_size=args.limit
+                        page_size=args.limit,
+                        data_source_id=ds_id
                     )
                     print(f"Found {len(response.get('results', []))} entries (has_more: {response.get('has_more')})", file=sys.stderr)
                     print(json.dumps(response, indent=2))
@@ -1676,7 +1761,14 @@ def main():
 
         # === Data Sources ===
         elif args.category == "data_sources":
-            if args.action == "get":
+            if args.action == "list":
+                data_sources = client.list_database_data_sources(args.database_id)
+                print(f"Found {len(data_sources)} data source(s):", file=sys.stderr)
+                for ds in data_sources:
+                    print(f"  - {ds.get('name', 'Unnamed')} ({ds.get('id')})", file=sys.stderr)
+                print(json.dumps(data_sources, indent=2))
+
+            elif args.action == "get":
                 ds = client.get_data_source(args.data_source_id)
                 print(f"Data source: {args.data_source_id}", file=sys.stderr)
                 print(json.dumps(ds, indent=2))

@@ -36,6 +36,7 @@ def create_page(
     parent_type: str = "page",
     icon: Optional[str] = None,
     properties: Optional[Dict[str, Any]] = None,
+    data_source_id: Optional[str] = None,
 ) -> dict:
     """Create a Notion page or database entry.
 
@@ -46,6 +47,7 @@ def create_page(
         parent_type: "page" or "database"
         icon: Optional emoji icon
         properties: Optional additional properties for database entries
+        data_source_id: For multi-source databases, specify which data source
     """
     children = None
     if content:
@@ -57,6 +59,7 @@ def create_page(
         children=children,
         icon=icon,
         parent_type=parent_type,
+        data_source_id=data_source_id,
     )
 
 
@@ -142,6 +145,7 @@ def query_database(
     filter: Optional[Dict] = None,
     sorts: Optional[List] = None,
     page_size: int = 100,
+    data_source_id: Optional[str] = None,
 ) -> dict:
     """Query a Notion database with optional filters and sorts.
 
@@ -150,9 +154,11 @@ def query_database(
         filter: Optional filter object (Notion filter format)
         sorts: Optional list of sort objects
         page_size: Number of results to return (default 100)
+        data_source_id: For multi-source databases, specify which data source
     """
     return get_client().query_database(
-        database_id, filter=filter, sorts=sorts, page_size=page_size
+        database_id, filter=filter, sorts=sorts, page_size=page_size,
+        data_source_id=data_source_id
     )
 
 
@@ -164,6 +170,19 @@ def get_database(database_id: str) -> dict:
         database_id: The database ID
     """
     return get_client().get_database(database_id)
+
+
+@mcp.tool
+def list_data_sources(database_id: str) -> dict:
+    """List all data sources for a multi-source database.
+
+    For single-source databases, returns a list with one data source.
+    For multi-source databases (API 2025-09-03+), returns all data sources.
+
+    Args:
+        database_id: The database ID to list data sources for
+    """
+    return {"data_sources": get_client().list_database_data_sources(database_id)}
 
 
 # === Search ===

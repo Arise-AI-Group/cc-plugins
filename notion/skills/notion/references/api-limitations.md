@@ -34,16 +34,31 @@
 
 ## Data Sources vs Databases
 
-Notion's API has evolved to use a `data_sources` architecture:
+Notion's API has evolved to use a `data_sources` architecture. As of API version 2025-09-03, databases support **multiple data sources**.
+
+### Key Concepts
+
+- **Database** - A container that can hold one or more data sources
+- **Data Source** - A table of records (pages) with its own schema/properties
+- **Single-source database** - Most databases, with one data source (backward compatible)
+- **Multi-source database** - A database with multiple data sources (API 2025-09-03+)
+
+### API Endpoints
 
 - **databases.create** - Still works for creating new databases
-- **databases.update** - DEPRECATED for schema changes (adding properties). Often returns success but doesn't actually apply the changes.
+- **databases.update** - DEPRECATED for schema changes (often fails silently)
 - **data_sources.query** - Used for querying database entries
 - **data_sources.update** - The CORRECT endpoint for modifying database schemas
-- **Relations** - Must use `data_source_id` not `database_id` when creating relations
+- **data_sources.list** (via `list_database_data_sources`) - List all data sources in a database
+
+### Multi-Source Database Workflow
+
+1. **List data sources:** `data_sources list <database_id>`
+2. **Use specific data source:** Add `--data-source-id <id>` to commands
+3. **For single-source databases:** No changes needed (auto-detection works)
 
 **Workflow for adding properties to an existing database:**
-1. Find the data source ID: `search "database name" --filter database`
+1. Find the data source ID: `data_sources list <database_id>` or `search "database name" --filter database`
 2. Update schema: `data_sources update <data_source_id> --properties '{...}'`
 
 For dashboards with linked database views, use the API to create the page structure (headings, sections) and have users add linked databases manually via Notion UI.
@@ -90,6 +105,14 @@ The `markdown_to_blocks()` helper supports:
 ---
 
 ## Changelog
+
+### 2026-01-15
+- **Added:** Multi-source database support (API 2025-09-03)
+- **Added:** `data_sources list <database_id>` command
+- **Added:** `--data-source-id` flag to `pages create` and `databases query`
+- **Added:** `list_data_sources` MCP tool
+- **Updated:** SDK requirement to `notion-client>=2.7.0`
+- **Enhanced:** Auto-detection of primary data source for backward compatibility
 
 ### 2026-01-09
 - **Added:** `--after <block_id>` parameter to `blocks append` command
