@@ -134,13 +134,15 @@ def list_projects() -> List[Dict[str, Any]]:
 @mcp.tool
 def show_config() -> dict:
     """Show current task database configuration."""
-    from .user_config import get_private_database_id, is_configured
-    from .tasks_config import AGENCY_TASK_DATABASE_ID
+    from .user_config import get_private_database_id, get_private_data_source_id, is_configured
+    from .tasks_config import AGENCY_TASK_DB, AGENCY_TASK_DATABASE_ID
 
     return {
         "private_database_configured": is_configured(),
         "private_database_id": get_private_database_id(),
+        "private_data_source_id": get_private_data_source_id(),
         "agency_database_id": AGENCY_TASK_DATABASE_ID,
+        "agency_data_source_id": AGENCY_TASK_DB.get("data_source_id"),
     }
 
 

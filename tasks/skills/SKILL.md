@@ -250,9 +250,13 @@ Accepted inputs:
 ```
 
 **Agency** (`tool/tasks_config.py`):
-- `AGENCY_TASK_DB` - Agency database IDs
-- `PROJECTS_DATABASE_ID` - Projects database
+- `AGENCY_TASK_DB` - Agency database IDs (both `database_id` and `data_source_id`)
+- `PROJECTS_DATABASE_ID` - Projects database data_source_id
 - `PROPERTY_NAMES` - Property name mapping
+
+**Note:** Notion uses two ID types since API 2025-09-03:
+- `database_id`: Used in `pages.create` parent object
+- `data_source_id`: Used for `data_sources.query()` and multi-source databases
 
 ## Common Errors
 

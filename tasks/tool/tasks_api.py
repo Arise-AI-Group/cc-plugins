@@ -70,6 +70,62 @@ class TasksClient:
         self._users_cache = None
         self._projects_cache = None
 
+    # === Data Source Operations ===
+
+    def list_database_data_sources(self, database_id: str) -> List[Dict]:
+        """List all data sources for a database.
+
+        For single-source databases, returns a list with one data source.
+        For multi-source databases (API 2025-09-03+), returns all data sources.
+
+        Args:
+            database_id: Database ID to get data sources for
+
+        Returns:
+            List of data source objects with 'id' and 'name' keys
+        """
+        db = self.client.databases.retrieve(database_id=database_id)
+        return db.get("data_sources", [])
+
+    def get_primary_data_source_id(self, database_id: str) -> str:
+        """Get the primary (first) data source ID for a database.
+
+        For single-source databases, this returns the only data source.
+        For multi-source databases, returns the first/default one.
+
+        Args:
+            database_id: Database ID
+
+        Returns:
+            Data source ID string
+        """
+        data_sources = self.list_database_data_sources(database_id)
+        if data_sources:
+            return data_sources[0]["id"]
+        # Fallback for backward compatibility with older API responses
+        return database_id
+
+    def resolve_data_source_id(
+        self,
+        database_id: str,
+        data_source_id: str = None
+    ) -> str:
+        """Resolve the data source ID to use for operations.
+
+        If data_source_id is provided, use it directly.
+        Otherwise, auto-detect by fetching the primary data source.
+
+        Args:
+            database_id: Database ID (container)
+            data_source_id: Optional explicit data source ID
+
+        Returns:
+            Resolved data source ID
+        """
+        if data_source_id:
+            return data_source_id
+        return self.get_primary_data_source_id(database_id)
+
     # === User Operations ===
 
     def list_users(self) -> List[Dict]:
@@ -428,13 +484,14 @@ class TasksClient:
             task_type, title, assignees, priority, due_date, project
         )
 
-        # Select database
+        # Select database and data_source_id
         if task_type == "agency":
             if not AGENCY_TASK_DATABASE_ID or AGENCY_TASK_DATABASE_ID.startswith("YOUR_"):
                 raise TaskConfigError(
                     "AGENCY_TASK_DATABASE_ID not configured in tasks_config.py"
                 )
             database_id = AGENCY_TASK_DATABASE_ID
+            data_source_id = AGENCY_TASK_DB.get("data_source_id")
         else:
             database_id = get_private_database_id()
             if not database_id:
@@ -442,6 +499,7 @@ class TasksClient:
                     "Private task database not configured. "
                     "Run /tasks-setup or: ./run tool/tasks_api.py config set-private <database_id>"
                 )
+            data_source_id = get_private_data_source_id()
 
         # Build properties
         properties = {
@@ -465,9 +523,14 @@ class TasksClient:
                 "relation": [{"id": validated["project_id"]}]
             }
 
+        # Build parent object with data_source_id for multi-source database support
+        parent = {"database_id": database_id}
+        if data_source_id:
+            parent["data_source_id"] = data_source_id
+
         # Create page with default template
         page = self.client.pages.create(
-            parent={"database_id": database_id},
+            parent=parent,
             properties=properties,
             template={"type": "default"}
         )
@@ -789,7 +852,9 @@ def main():
             if args.config_command == "show":
                 config = {
                     "private_task_database_id": get_private_database_id(),
+                    "private_task_data_source_id": get_private_data_source_id(),
                     "agency_task_database_id": AGENCY_TASK_DATABASE_ID,
+                    "agency_task_data_source_id": AGENCY_TASK_DB.get("data_source_id"),
                     "projects_database_id": PROJECTS_DATABASE_ID,
                     "configured": is_configured(),
                 }
