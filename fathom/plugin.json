@@ -1,0 +1,13 @@
+{
+  "name": "fathom",
+  "version": "1.0.0",
+  "description": "Fathom Video integration for searching meetings, retrieving transcripts, and extracting action items",
+  "author": "Claude Code Plugin",
+  "settings": {
+    "FATHOM_API_KEY": {
+      "description": "Your Fathom API key for authentication",
+      "required": true,
+      "secret": true
+    }
+  }
+}

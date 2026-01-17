@@ -1,0 +1,31 @@
+#!/bin/bash
+# Activate virtual environment and run Python script
+# Resolve symlinks to get the actual script location
+SCRIPT_PATH="$0"
+if [ -L "$SCRIPT_PATH" ]; then
+    SCRIPT_PATH="$(cd "$(dirname "$0")" && readlink "$SCRIPT_PATH")"
+    SCRIPT_PATH="$(cd "$(dirname "$0")" && cd "$(dirname "$SCRIPT_PATH")" && pwd)/$(basename "$SCRIPT_PATH")"
+fi
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+
+# Auto-setup venv if not present
+if [ ! -d "$SCRIPT_DIR/.venv" ]; then
+    echo "Setting up virtual environment..." >&2
+    python3 -m venv "$SCRIPT_DIR/.venv"
+    source "$SCRIPT_DIR/.venv/bin/activate"
+    pip install -q -r "$SCRIPT_DIR/requirements.txt"
+else
+    source "$SCRIPT_DIR/.venv/bin/activate"
+fi
+
+cd "$SCRIPT_DIR"
+
+# Convert path like tool/script.py to module: tool.script
+if [[ "$1" == *.py ]]; then
+    module="${1%.py}"
+    module="${module//\//.}"
+    shift
+    python3 -m "$module" "$@"
+else
+    python3 "$@"
+fi

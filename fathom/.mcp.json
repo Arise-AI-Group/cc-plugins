@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "fathom": {
+      "command": "npx",
+      "args": ["tsx", "${CLAUDE_PLUGIN_ROOT}/mcp-server/src/index.ts"],
+      "env": {
+        "FATHOM_API_KEY": "${FATHOM_API_KEY}"
+      }
+    }
+  }
+}

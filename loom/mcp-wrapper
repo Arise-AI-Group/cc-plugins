@@ -1,0 +1,5 @@
+#!/bin/bash
+# MCP wrapper for Loom transcript server
+# Works with public Loom videos - no API key required
+
+exec npx -y @bstyler/loom-transcript-mcp

@@ -76,6 +76,21 @@
       "name": "ssh",
       "source": "./ssh",
       "description": "Execute commands and transfer files on remote servers via SSH/SFTP"
+    },
+    {
+      "name": "fireflies",
+      "source": "./fireflies",
+      "description": "Fireflies.ai meeting transcription - list meetings, get transcripts, summaries, action items, and speaker analytics"
+    },
+    {
+      "name": "loom",
+      "source": "./loom",
+      "description": "Loom video transcription - get transcripts and comments from public Loom videos"
+    },
+    {
+      "name": "fathom",
+      "source": "./fathom",
+      "description": "Fathom Video integration - search meetings, get transcripts, and extract action items"
     }
   ]
 }

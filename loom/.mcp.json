@@ -1,0 +1,7 @@
+{
+  "loom": {
+    "command": "${CLAUDE_PLUGIN_ROOT}/mcp-wrapper",
+    "args": [],
+    "cwd": "${CLAUDE_PLUGIN_ROOT}"
+  }
+}
