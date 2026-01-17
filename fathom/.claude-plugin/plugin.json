@@ -1,0 +1,8 @@
+{
+  "name": "fathom",
+  "description": "Fathom Video integration for searching meetings, retrieving transcripts, and extracting action items",
+  "version": "1.0.1",
+  "author": {
+    "name": "Arise Group"
+  }
+}
