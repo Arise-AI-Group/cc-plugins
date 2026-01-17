@@ -1,10 +1,73 @@
 ---
+name: fathom
 description: This skill should be used when the user asks to "find meetings", "search Fathom", "get meeting transcript", "extract action items from meeting", "list my meetings", "what was discussed in meeting". Provides Fathom Video integration for meeting search, transcripts, and action item extraction.
 ---
 
 # Fathom Video Integration
 
 This skill provides integration with Fathom Video for searching meetings, retrieving transcripts, and extracting action items.
+
+## Saving Transcripts & Summaries
+
+When extracting meeting data, **always save them to files** in the user's working directory (not cache):
+
+### Default Location
+
+Save meeting data to `./transcripts/fathom/` in the current working directory:
+
+```
+./transcripts/fathom/
+  {meeting-title}-{date}-{id}.md
+```
+
+### File Naming Convention
+
+- Use the meeting title (sanitized for filesystem)
+- Include the date (YYYY-MM-DD)
+- Include part of the recording ID for uniqueness
+- Use `.md` format for readability
+
+Example: `./transcripts/fathom/team-standup-2025-01-15-105060431.md`
+
+### Meeting File Format
+
+```markdown
+# {Meeting Title}
+
+**Date:** {Meeting Date}
+**Host:** {Recorded By}
+**Participants:** {Calendar Invitees}
+**Fathom ID:** {Recording ID}
+**Video:** {Share URL}
+
+---
+
+## Summary
+
+{AI-generated summary}
+
+## Action Items
+
+- [ ] Action item 1
+- [ ] Action item 2
+
+---
+
+## Full Transcript
+
+[Speaker Name] (00:00)
+Text of what they said...
+
+[Another Speaker] (00:15)
+Their response...
+```
+
+### Workflow
+
+1. Fetch meeting data using MCP or API
+2. Create the output directory if needed: `mkdir -p ./transcripts/fathom`
+3. Write the formatted meeting notes to file
+4. Report the saved file path to the user
 
 ## When to Use
 

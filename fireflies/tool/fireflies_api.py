@@ -50,8 +50,8 @@ class FirefliesNotFoundError(FirefliesError):
 
 QUERIES = {
     "list_transcripts": """
-        query Transcripts($limit: Int, $skip: Int, $mine: Boolean, $host_email: String, $fromDate: Date, $toDate: Date) {
-            transcripts(limit: $limit, skip: $skip, mine: $mine, host_email: $host_email, fromDate: $fromDate, toDate: $toDate) {
+        query Transcripts($limit: Int, $skip: Int, $mine: Boolean, $host_email: String) {
+            transcripts(limit: $limit, skip: $skip, mine: $mine, host_email: $host_email) {
                 id
                 title
                 date
@@ -245,8 +245,8 @@ class FirefliesClient:
             skip: Number of results to skip for pagination
             mine: Only show meetings where I am the organizer
             host_email: Filter by host email
-            from_date: Filter meetings from this date (YYYY-MM-DD)
-            to_date: Filter meetings to this date (YYYY-MM-DD)
+            from_date: Filter meetings from this date (YYYY-MM-DD) - NOTE: Currently unsupported by API
+            to_date: Filter meetings to this date (YYYY-MM-DD) - NOTE: Currently unsupported by API
 
         Returns:
             List of meeting dictionaries with id, title, date, duration, etc.
@@ -257,10 +257,8 @@ class FirefliesClient:
             variables["mine"] = True
         if host_email:
             variables["host_email"] = host_email
-        if from_date:
-            variables["fromDate"] = from_date
-        if to_date:
-            variables["toDate"] = to_date
+        # Note: from_date and to_date are not supported by the Fireflies API
+        # Date filtering would need to be done client-side if needed
 
         data = self._request(QUERIES["list_transcripts"], variables)
         return data.get("transcripts", [])
@@ -325,18 +323,21 @@ class FirefliesClient:
 
         return results[:limit]
 
-    def get_action_items(self, transcript_id: str) -> list[str]:
+    def get_action_items(self, transcript_id: str) -> str | list[str]:
         """Get action items from a meeting.
 
         Args:
             transcript_id: The transcript ID
 
         Returns:
-            List of action item strings
+            Action items as string (markdown) or list of strings
         """
         meeting = self.get_meeting(transcript_id, include_sentences=False)
         summary = meeting.get("summary", {}) or {}
-        return summary.get("action_items", []) or []
+        action_items = summary.get("action_items")
+        if action_items is None:
+            return []
+        return action_items  # Can be string or list depending on API version
 
     def get_summary(self, transcript_id: str) -> dict:
         """Get meeting summary.
@@ -575,7 +576,12 @@ def cmd_meetings_actions(args: argparse.Namespace) -> None:
     if args.output_format == "text":
         if not actions:
             print("No action items found")
+        elif isinstance(actions, str):
+            # API returns markdown string
+            print("Action Items:\n")
+            print(actions)
         else:
+            # API returns list of strings
             print("Action Items:")
             for i, action in enumerate(actions, 1):
                 print(f"  {i}. {action}")

@@ -39,52 +39,58 @@ class LoomNetworkError(LoomError):
 # GraphQL Queries
 # =============================================================================
 
-# Query to get video transcript
-TRANSCRIPT_QUERY = """
-query GetVideoTranscript($videoId: ID!) {
+# Query to get video info
+VIDEO_INFO_QUERY = """
+query GetVideoInfo($videoId: ID!) {
   getVideo(id: $videoId) {
-    id
-    name
-    createdAt
-    owner {
-      display_name
-    }
-    transcription {
+    ... on RegularUserVideo {
       id
-      source_lang
-      sentences {
-        text
-        speaker_name
-        start_ts
-        end_ts
+      name
+      createdAt
+      description
+      owner {
+        display_name
       }
+    }
+    ... on PrivateVideo {
+      id
+    }
+    ... on VideoPasswordMissingOrIncorrect {
+      id
     }
   }
 }
 """
 
-# Query to get video comments
+# Query to get video transcript details (separate from video info)
+TRANSCRIPT_QUERY = """
+query FetchVideoTranscript($videoId: ID!) {
+  fetchVideoTranscript(videoId: $videoId) {
+    ... on VideoTranscriptDetails {
+      idv2
+      video_id
+      source_url
+      captions_source_url
+      language
+      transcription_status
+    }
+  }
+}
+"""
+
+# Query to get video comments - NOTE: Comments API may have changed
 COMMENTS_QUERY = """
 query GetVideoComments($videoId: ID!) {
   getVideo(id: $videoId) {
-    id
-    name
-    comments {
+    ... on RegularUserVideo {
       id
-      body
-      createdAt
-      author {
-        display_name
-      }
-      replies {
-        id
-        body
-        createdAt
-        author {
-          display_name
-        }
-      }
-      timestamp_ms
+      name
+    }
+    ... on PrivateVideo {
+      id
+    }
+    ... on VideoPasswordMissingOrIncorrect {
+      id
     }
   }
 }
@@ -201,29 +207,76 @@ class LoomClient:
             Dict with video info and transcript sentences
         """
         video_id = self.extract_video_id(url_or_id)
-        data = self._request(TRANSCRIPT_QUERY, {"videoId": video_id})
 
-        video = data.get("getVideo")
-        if not video:
+        # Get video info
+        video_data = self._request(VIDEO_INFO_QUERY, {"videoId": video_id})
+        video = video_data.get("getVideo")
+        if not video or not video.get("name"):
             raise LoomNotFoundError(f"Video {video_id} not found or not accessible")
+
+        # Get transcript details
+        transcript_data = self._request(TRANSCRIPT_QUERY, {"videoId": video_id})
+        transcript_details = transcript_data.get("fetchVideoTranscript")
+
+        if not transcript_details or not transcript_details.get("source_url"):
+            # No transcript available
+            video["transcription"] = None
+            return video
+
+        # Fetch the actual transcript JSON from source_url
+        try:
+            response = self.session.get(transcript_details["source_url"], timeout=30)
+            response.raise_for_status()
+            transcript_json = response.json()
+
+            # Transform to expected format - Loom uses 'phrases' with 'ts' and 'value'
+            sentences = []
+            phrases = transcript_json.get("phrases", [])
+            for item in phrases:
+                # ts is in seconds, convert to milliseconds for consistency
+                start_ts = item.get("ts")
+                start_ts_ms = int(start_ts * 1000) if start_ts is not None else None
+                sentences.append({
+                    "text": item.get("value", ""),
+                    "speaker_name": "Speaker",  # Loom doesn't provide speaker identification
+                    "start_ts": start_ts_ms,
+                    "end_ts": None,
+                })
+
+            video["transcription"] = {
+                "id": transcript_details.get("idv2"),
+                "source_lang": transcript_details.get("language", "en"),
+                "sentences": sentences,
+            }
+        except requests.RequestException as e:
+            raise LoomNetworkError(f"Failed to fetch transcript: {e}") from e
 
         return video
 
     def get_comments(self, url_or_id: str) -> dict:
         """Get comments from a Loom video.
 
+        Note: The Loom API has changed and comments may not be directly available
+        via the public GraphQL API. This method returns video info but comments
+        may be empty.
+
         Args:
             url_or_id: Loom video URL or video ID
 
         Returns:
-            Dict with video info and comments
+            Dict with video info and comments (if available)
         """
         video_id = self.extract_video_id(url_or_id)
-        data = self._request(COMMENTS_QUERY, {"videoId": video_id})
 
-        video = data.get("getVideo")
-        if not video:
+        # Get video info (comments field is no longer available in public API)
+        video_data = self._request(VIDEO_INFO_QUERY, {"videoId": video_id})
+        video = video_data.get("getVideo")
+        if not video or not video.get("name"):
             raise LoomNotFoundError(f"Video {video_id} not found or not accessible")
+
+        # Note: Comments are no longer available via the public GraphQL API
+        video["comments"] = []
+        video["_comments_note"] = "Comments are no longer available via the Loom public API"
 
         return video
 
@@ -316,6 +369,11 @@ def format_comments_text(video: dict) -> str:
     # Video header
     lines.append(f"# Comments: {video.get('name', 'Untitled Video')}")
     lines.append("")
+
+    # Check for API limitation note
+    if video.get("_comments_note"):
+        lines.append(f"Note: {video['_comments_note']}")
+        lines.append("")
 
     comments = video.get("comments", [])
     if not comments:

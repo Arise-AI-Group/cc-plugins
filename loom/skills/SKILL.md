@@ -9,6 +9,51 @@ description: This skill should be used when the user asks to "get loom transcrip
 
 Extract transcripts and comments from public Loom videos. Use this for getting video content as text, extracting action items from recordings, or reviewing video comments.
 
+## Saving Transcripts
+
+When extracting transcripts, **always save them to a file** in the user's working directory (not cache):
+
+### Default Location
+
+Save transcripts to `./transcripts/loom/` in the current working directory:
+
+```
+./transcripts/loom/
+  {video-title}-{video-id}.md
+```
+
+### File Naming Convention
+
+- Use the video title (sanitized for filesystem)
+- Include the video ID for uniqueness
+- Use `.md` format for readability
+
+Example: `./transcripts/loom/project-kickoff-abc123def456.md`
+
+### Transcript File Format
+
+```markdown
+# {Video Title}
+
+**By:** {Creator Name}
+**Date:** {Created Date}
+**Video:** https://www.loom.com/share/{VIDEO_ID}
+
+---
+
+## Transcript
+
+[00:00] Speaker: First sentence...
+[00:15] Speaker: Next sentence...
+```
+
+### Workflow
+
+1. Fetch the transcript using CLI or MCP
+2. Create the output directory if needed: `mkdir -p ./transcripts/loom`
+3. Write the formatted transcript to file
+4. Report the saved file path to the user
+
 ## Trigger Phrases
 
 - "Get the transcript from this Loom"

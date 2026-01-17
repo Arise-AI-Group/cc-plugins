@@ -7,6 +7,81 @@ description: This skill should be used when the user asks to "list my meetings",
 
 Access Fireflies.ai meeting transcription data including transcripts, summaries, action items, and speaker analytics.
 
+## Saving Transcripts & Summaries
+
+When extracting meeting data, **always save them to files** in the user's working directory (not cache):
+
+### Default Location
+
+Save meeting data to `./transcripts/fireflies/` in the current working directory:
+
+```
+./transcripts/fireflies/
+  {meeting-title}-{date}-{id}.md
+```
+
+### File Naming Convention
+
+- Use the meeting title (sanitized for filesystem)
+- Include the date (YYYY-MM-DD)
+- Include part of the transcript ID for uniqueness
+- Use `.md` format for readability
+
+Example: `./transcripts/fireflies/team-standup-2025-01-15-01KF4END.md`
+
+### Meeting File Format
+
+```markdown
+# {Meeting Title}
+
+**Date:** {Meeting Date}
+**Duration:** {Duration} minutes
+**Host:** {Organizer Email}
+**Participants:** {Participant List}
+**Fireflies ID:** {Transcript ID}
+
+---
+
+## Summary
+
+{AI-generated overview}
+
+## Key Points
+
+- Point 1
+- Point 2
+
+## Action Items
+
+- [ ] Action item 1 (Owner)
+- [ ] Action item 2 (Owner)
+
+---
+
+## Full Transcript
+
+[Speaker Name]
+Text of what they said...
+
+[Another Speaker]
+Their response...
+```
+
+### Workflow
+
+1. Fetch meeting data using CLI or MCP
+2. Create the output directory if needed: `mkdir -p ./transcripts/fireflies`
+3. Write the formatted meeting notes to file
+4. Report the saved file path to the user
+
+### Batch Export
+
+When exporting multiple meetings:
+```bash
+mkdir -p ./transcripts/fireflies
+# Save each meeting to its own file
+```
+
 ## Trigger Phrases
 
 - "list my meetings"
