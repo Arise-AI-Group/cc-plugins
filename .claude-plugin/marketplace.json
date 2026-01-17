@@ -91,6 +91,11 @@
       "name": "fathom",
       "source": "./fathom",
       "description": "Fathom Video integration - search meetings, get transcripts, and extract action items"
+    },
+    {
+      "name": "meeting-intel",
+      "source": "./meeting-intel",
+      "description": "Meeting intelligence - extract entities, track decisions, action items, and build knowledge graphs from Fireflies, Loom, and Fathom transcripts"
     }
   ]
 }
