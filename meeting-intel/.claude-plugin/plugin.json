@@ -1,0 +1,8 @@
+{
+  "name": "meeting-intel",
+  "description": "Meeting intelligence - extract entities, track decisions, action items, and build knowledge graphs from Fireflies, Loom, and Fathom transcripts",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}
