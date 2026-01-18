@@ -1,0 +1,188 @@
+asyncapi: '3.0.0'
+
+info:
+  title: {{MODULE_NAME}}
+  version: '{{VERSION}}'
+  description: |
+    {{DESCRIPTION}}
+
+    Part of Arise modular integration platform.
+  contact:
+    name: Arise AI Group
+
+servers:
+  production:
+    host: {{PROD_HOST}}
+    protocol: {{PROTOCOL}}
+  development:
+    host: localhost:{{PORT}}
+    protocol: http
+
+channels:
+  {{INPUT_CHANNEL_NAME}}:
+    address: {{INPUT_TOPIC_NAME}}
+    description: {{INPUT_CHANNEL_DESCRIPTION}}
+    messages:
+      {{INPUT_MESSAGE_NAME}}:
+        name: {{INPUT_MESSAGE_NAME_PASCAL}}
+        title: {{INPUT_MESSAGE_TITLE}}
+        summary: {{INPUT_MESSAGE_SUMMARY}}
+        contentType: application/cloudevents+json
+        payload:
+          $ref: '#/components/schemas/InputCloudEvent'
+        examples:
+          - name: {{INPUT_EXAMPLE_NAME}}
+            summary: {{INPUT_EXAMPLE_DESCRIPTION}}
+            payload:
+              specversion: "1.0"
+              type: "{{INPUT_EVENT_TYPE}}"
+              source: "{{INPUT_SOURCE}}"
+              id: "550e8400-e29b-41d4-a716-446655440000"
+              time: "2026-01-17T10:30:00Z"
+              datacontenttype: "application/json"
+              data:
+                # Example input data
+                {{INPUT_EXAMPLE_DATA}}
+
+  {{OUTPUT_CHANNEL_NAME}}:
+    address: {{OUTPUT_TOPIC_NAME}}
+    description: {{OUTPUT_CHANNEL_DESCRIPTION}}
+    messages:
+      {{OUTPUT_MESSAGE_NAME}}:
+        name: {{OUTPUT_MESSAGE_NAME_PASCAL}}
+        title: {{OUTPUT_MESSAGE_TITLE}}
+        summary: {{OUTPUT_MESSAGE_SUMMARY}}
+        contentType: application/cloudevents+json
+        payload:
+          $ref: '#/components/schemas/OutputCloudEvent'
+        examples:
+          - name: {{OUTPUT_EXAMPLE_NAME}}
+            summary: {{OUTPUT_EXAMPLE_DESCRIPTION}}
+            payload:
+              specversion: "1.0"
+              type: "{{OUTPUT_EVENT_TYPE}}"
+              source: "{{MODULE_ID}}"
+              id: "550e8400-e29b-41d4-a716-446655440001"
+              time: "2026-01-17T10:30:01Z"
+              datacontenttype: "application/json"
+              data:
+                # Example output data
+                {{OUTPUT_EXAMPLE_DATA}}
+
+operations:
+  receive{{INPUT_MESSAGE_NAME_PASCAL}}:
+    action: receive
+    channel:
+      $ref: '#/channels/{{INPUT_CHANNEL_NAME}}'
+    messages:
+      - $ref: '#/channels/{{INPUT_CHANNEL_NAME}}/messages/{{INPUT_MESSAGE_NAME}}'
+
+  send{{OUTPUT_MESSAGE_NAME_PASCAL}}:
+    action: send
+    channel:
+      $ref: '#/channels/{{OUTPUT_CHANNEL_NAME}}'
+    messages:
+      - $ref: '#/channels/{{OUTPUT_CHANNEL_NAME}}/messages/{{OUTPUT_MESSAGE_NAME}}'
+
+components:
+  schemas:
+    InputCloudEvent:
+      type: object
+      description: CloudEvents wrapper for input messages
+      required: [specversion, type, source, id, data]
+      properties:
+        specversion:
+          type: string
+          const: "1.0"
+          description: CloudEvents specification version
+        type:
+          type: string
+          const: "{{INPUT_EVENT_TYPE}}"
+          description: Event type identifier
+        source:
+          type: string
+          description: Module identifier that produced the event
+        id:
+          type: string
+          format: uuid
+          description: Unique event identifier
+        time:
+          type: string
+          format: date-time
+          description: Event timestamp (ISO 8601)
+        datacontenttype:
+          type: string
+          const: "application/json"
+          description: Content type of data field
+        data:
+          $ref: '#/components/schemas/{{INPUT_DATA_SCHEMA_NAME}}'
+
+    OutputCloudEvent:
+      type: object
+      description: CloudEvents wrapper for output messages
+      required: [specversion, type, source, id, data]
+      properties:
+        specversion:
+          type: string
+          const: "1.0"
+          description: CloudEvents specification version
+        type:
+          type: string
+          const: "{{OUTPUT_EVENT_TYPE}}"
+          description: Event type identifier
+        source:
+          type: string
+          const: "{{MODULE_ID}}"
+          description: This module's identifier
+        id:
+          type: string
+          format: uuid
+          description: Unique event identifier
+        time:
+          type: string
+          format: date-time
+          description: Event timestamp (ISO 8601)
+        datacontenttype:
+          type: string
+          const: "application/json"
+          description: Content type of data field
+        data:
+          $ref: '#/components/schemas/{{OUTPUT_DATA_SCHEMA_NAME}}'
+
+    {{INPUT_DATA_SCHEMA_NAME}}:
+      type: object
+      description: {{INPUT_DATA_DESCRIPTION}}
+      required: {{INPUT_REQUIRED_FIELDS}}
+      properties:
+        # Define input data properties here
+        # Example:
+        # sensorId:
+        #   type: string
+        #   description: Unique sensor identifier
+        # value:
+        #   type: number
+        #   description: Sensor reading value
+        # timestamp:
+        #   type: string
+        #   format: date-time
+        #   description: When reading was taken
+        {{INPUT_DATA_PROPERTIES}}
+
+    {{OUTPUT_DATA_SCHEMA_NAME}}:
+      type: object
+      description: {{OUTPUT_DATA_DESCRIPTION}}
+      required: {{OUTPUT_REQUIRED_FIELDS}}
+      properties:
+        # Define output data properties here
+        # Example:
+        # sensorId:
+        #   type: string
+        #   description: Unique sensor identifier
+        # value:
+        #   type: number
+        #   description: Validated sensor reading
+        # validationStatus:
+        #   type: string
+        #   enum: [valid, invalid, warning]
+        #   description: Validation result
+        {{OUTPUT_DATA_PROPERTIES}}

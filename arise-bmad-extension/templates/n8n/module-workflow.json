@@ -1,0 +1,174 @@
+{
+  "name": "{{MODULE_NAME}}",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{WEBHOOK_PATH}}",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "{{WEBHOOK_ID}}"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Validate CloudEvents Format\nconst event = $json;\n\n// Required CloudEvents fields\nif (!event.specversion || event.specversion !== '1.0') {\n  throw new Error('Invalid CloudEvents version. Expected 1.0, got: ' + event.specversion);\n}\n\nif (!event.type) {\n  throw new Error('Missing required CloudEvents field: type');\n}\n\nif (!event.source) {\n  throw new Error('Missing required CloudEvents field: source');\n}\n\nif (!event.id) {\n  throw new Error('Missing required CloudEvents field: id');\n}\n\nif (!event.data) {\n  throw new Error('Missing required CloudEvents field: data');\n}\n\n// Validate event type pattern\nconst typePattern = /^com\\.arise\\.[a-z]+\\.[a-z]+\\.[a-z]+\\.v[0-9]+$/;\nif (!typePattern.test(event.type)) {\n  throw new Error('Invalid event type format. Expected: com.arise.<domain>.<entity>.<action>.v<version>');\n}\n\n// TODO: Add AsyncAPI schema validation here\n// Load schema from asyncapi.yaml and validate event.data\n\nreturn { json: event };"
+      },
+      "id": "validate-input",
+      "name": "Validate CloudEvents Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Your module's business logic here\nconst inputData = $json.data;\nconst correlationId = $json.id;\n\n// ============================================\n// TODO: Implement your processing logic here\n// ============================================\n// \n// Example for a validator module:\n// const isValid = validateSensorReading(inputData);\n// const result = {\n//   ...inputData,\n//   validationStatus: isValid ? 'valid' : 'invalid',\n//   validatedAt: new Date().toISOString()\n// };\n//\n// Example for an enricher module:\n// const context = await loadContext(inputData.sensorId);\n// const result = {\n//   ...inputData,\n//   location: context.location,\n//   deviceType: context.deviceType\n// };\n\nconst result = {\n  ...inputData,\n  processed: true,\n  processedAt: new Date().toISOString(),\n  processedBy: '{{MODULE_ID}}'\n};\n\nreturn { \n  json: {\n    processedData: result,\n    correlationId: correlationId\n  }\n};"
+      },
+      "id": "process-data",
+      "name": "Process Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Create CloudEvents Response\nconst createCloudEvent = (data, eventType, correlationId) => {\n  const event = {\n    specversion: '1.0',\n    type: `com.arise.{{DOMAIN}}.{{OUTPUT_ACTION}}.v1`,\n    source: '{{MODULE_ID}}',\n    id: `${$execution.id}_${Date.now()}`,\n    time: new Date().toISOString(),\n    datacontenttype: 'application/json',\n    data: data\n  };\n  \n  // Add correlation ID if present (for tracing)\n  if (correlationId) {\n    event.correlationid = correlationId;\n  }\n  \n  return event;\n};\n\nconst response = createCloudEvent(\n  $json.processedData,\n  '{{OUTPUT_EVENT_TYPE}}',\n  $json.correlationId\n);\n\nreturn { json: response };"
+      },
+      "id": "create-response",
+      "name": "Create CloudEvents Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/cloudevents+json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Error Handler\nconst error = $json.error || $execution.error || 'Unknown error';\nconst errorMessage = typeof error === 'object' ? error.message : error;\n\nconst errorResponse = {\n  specversion: '1.0',\n  type: 'com.arise.{{DOMAIN}}.error.v1',\n  source: '{{MODULE_ID}}',\n  id: `${$execution.id}_error_${Date.now()}`,\n  time: new Date().toISOString(),\n  datacontenttype: 'application/json',\n  data: {\n    error: true,\n    message: errorMessage,\n    module: '{{MODULE_ID}}',\n    timestamp: new Date().toISOString()\n  }\n};\n\nreturn { json: errorResponse };"
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "responseCode": 400,
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/cloudevents+json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond with Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 500]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate CloudEvents Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate CloudEvents Input": {
+      "main": [
+        [
+          {
+            "node": "Process Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Data": {
+      "main": [
+        [
+          {
+            "node": "Create CloudEvents Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create CloudEvents Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Respond with Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "Error Handler"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "arise-modular"
+    },
+    {
+      "name": "cloudevents"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "{{UPDATED_AT}}",
+  "versionId": "{{VERSION_ID}}"
+}

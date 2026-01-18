@@ -1,0 +1,191 @@
+asyncapi: '3.0.0'
+
+info:
+  title: Hub Router
+  version: '{{VERSION}}'
+  description: |
+    Central message router for Arise modular integration platform.
+
+    Routes CloudEvents messages to appropriate modules based on event type.
+
+    ## Routing Strategy
+    - Pattern-based routing on CloudEvents `type` field
+    - A/B version routing with weighted distribution
+    - Dead letter queue for unmatched messages
+  contact:
+    name: Arise AI Group
+
+servers:
+  production:
+    host: {{PROD_HOST}}
+    protocol: {{PROTOCOL}}
+  development:
+    host: localhost:{{PORT}}
+    protocol: http
+
+channels:
+  route:
+    address: /route
+    description: Main routing endpoint - receives all CloudEvents messages
+    messages:
+      cloudEvent:
+        name: CloudEvent
+        title: CloudEvents Message
+        summary: Any CloudEvents v1.0 message to be routed
+        contentType: application/cloudevents+json
+        payload:
+          $ref: '#/components/schemas/CloudEvent'
+        examples:
+          - name: sensor-reading
+            summary: Example sensor reading event
+            payload:
+              specversion: "1.0"
+              type: "com.arise.sensor.temperature.reading.v1"
+              source: "sensor-collector-v1"
+              id: "550e8400-e29b-41d4-a716-446655440000"
+              time: "2026-01-17T10:30:00Z"
+              datacontenttype: "application/json"
+              data:
+                sensorId: "temp-01"
+                value: 72.5
+                unit: "fahrenheit"
+
+  routingResult:
+    address: /route/result
+    description: Routing result response
+    messages:
+      routingResult:
+        name: RoutingResult
+        title: Routing Result
+        summary: Result of message routing operation
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/RoutingResult'
+
+  deadLetter:
+    address: /dead-letter
+    description: Dead letter queue for unroutable messages
+    messages:
+      deadLetterEvent:
+        name: DeadLetterEvent
+        title: Dead Letter Event
+        summary: Unroutable message sent to dead letter queue
+        contentType: application/cloudevents+json
+        payload:
+          $ref: '#/components/schemas/DeadLetterEvent'
+
+operations:
+  routeMessage:
+    action: receive
+    channel:
+      $ref: '#/channels/route'
+    description: Receive CloudEvents message for routing
+    messages:
+      - $ref: '#/channels/route/messages/cloudEvent'
+
+  returnRoutingResult:
+    action: send
+    channel:
+      $ref: '#/channels/routingResult'
+    description: Return routing result
+    messages:
+      - $ref: '#/channels/routingResult/messages/routingResult'
+
+  sendToDeadLetter:
+    action: send
+    channel:
+      $ref: '#/channels/deadLetter'
+    description: Send unroutable message to dead letter queue
+    messages:
+      - $ref: '#/channels/deadLetter/messages/deadLetterEvent'
+
+components:
+  schemas:
+    CloudEvent:
+      type: object
+      description: CloudEvents v1.0 message envelope
+      required: [specversion, type, source, id, data]
+      properties:
+        specversion:
+          type: string
+          const: "1.0"
+          description: CloudEvents specification version
+        type:
+          type: string
+          pattern: '^com\.arise\.[a-z]+\.[a-z]+\.[a-z]+\.v[0-9]+$'
+          description: Event type identifier following com.arise.<domain>.<entity>.<action>.v<version>
+        source:
+          type: string
+          description: Module identifier that produced the event
+        id:
+          type: string
+          format: uuid
+          description: Unique event identifier
+        time:
+          type: string
+          format: date-time
+          description: Event timestamp (ISO 8601)
+        datacontenttype:
+          type: string
+          default: "application/json"
+          description: Content type of data field
+        data:
+          type: object
+          description: Event payload (schema varies by event type)
+
+    RoutingResult:
+      type: object
+      description: Result of message routing operation
+      required: [routed_to]
+      properties:
+        routed_to:
+          oneOf:
+            - type: string
+              description: Single destination (e.g., "dead-letter")
+            - type: array
+              items:
+                $ref: '#/components/schemas/RouteDestination'
+              description: List of destinations message was sent to
+        event_type:
+          type: string
+          description: The event type that was routed
+        timestamp:
+          type: string
+          format: date-time
+          description: When routing occurred
+
+    RouteDestination:
+      type: object
+      description: A destination module and routing status
+      required: [module, status]
+      properties:
+        module:
+          type: string
+          description: Module ID that received the message
+        status:
+          type: integer
+          description: HTTP status code from the module
+        error:
+          type: string
+          description: Error message if routing failed
+
+    DeadLetterEvent:
+      type: object
+      description: Wrapper for unroutable messages
+      required: [original_event, reason, timestamp]
+      properties:
+        original_event:
+          $ref: '#/components/schemas/CloudEvent'
+        reason:
+          type: string
+          enum: [no_matching_rule, all_destinations_failed, invalid_format]
+          description: Why the message couldn't be routed
+        timestamp:
+          type: string
+          format: date-time
+          description: When message was sent to dead letter
+        attempted_destinations:
+          type: array
+          items:
+            type: string
+          description: Modules that were attempted (if any)

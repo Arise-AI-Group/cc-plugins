@@ -1,0 +1,240 @@
+{
+  "name": "Hub Router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "route",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Route",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "hub-router-main"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Validate CloudEvents Format\nconst event = $json;\n\n// Required CloudEvents fields\nif (!event.specversion || event.specversion !== '1.0') {\n  throw new Error('Invalid CloudEvents version');\n}\n\nif (!event.type || !event.source || !event.id) {\n  throw new Error('Missing required CloudEvents fields');\n}\n\nif (!event.data) {\n  throw new Error('Missing data field');\n}\n\n// Extract routing information\nconst eventType = event.type;\nconst eventParts = eventType.split('.');\n\nreturn { \n  json: {\n    ...event,\n    _routing: {\n      eventType: eventType,\n      domain: eventParts[2] || 'unknown',\n      entity: eventParts[3] || 'unknown',\n      action: eventParts[4] || 'unknown',\n      version: eventParts[5] || 'v1'\n    }\n  }\n};"
+      },
+      "id": "validate-input",
+      "name": "Validate CloudEvents",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Load routing rules and determine destinations\n// In production, load from routing-rules.yaml\n\nconst event = $json;\nconst eventType = event._routing.eventType;\n\n// Example routing rules (replace with actual configuration)\nconst routingRules = [\n  // Pattern-based routing\n  { pattern: 'com.arise.sensor.*.reading.v1', destination: 'data-validator-v1' },\n  { pattern: 'com.arise.sensor.*.validated.v1', destinations: [\n    { module: 'data-enricher-v1', weight: 80 },\n    { module: 'data-enricher-v2', weight: 20 }  // A/B test\n  ]},\n  { pattern: 'com.arise.sensor.*.enriched.v1', destinations: [\n    { module: 'alert-manager-v1', weight: 100 },\n    { module: 'time-series-writer-v1', weight: 100 }  // Fan-out\n  ]},\n  { pattern: 'com.arise.alert.*.v1', destination: 'notification-service-v1' }\n];\n\n// Module registry (replace with actual configuration)\nconst moduleRegistry = {\n  'data-validator-v1': 'http://localhost:3001/process',\n  'data-enricher-v1': 'http://localhost:3002/process',\n  'data-enricher-v2': 'http://localhost:3003/process',\n  'alert-manager-v1': 'http://localhost:3004/process',\n  'time-series-writer-v1': 'http://localhost:3005/process',\n  'notification-service-v1': 'http://localhost:3006/process'\n};\n\n// Find matching rule\nfunction matchesPattern(eventType, pattern) {\n  const regex = new RegExp('^' + pattern.replace(/\\*/g, '[a-z]+') + '$');\n  return regex.test(eventType);\n}\n\nfunction selectByWeight(destinations) {\n  // Simple weighted random selection\n  const totalWeight = destinations.reduce((sum, d) => sum + d.weight, 0);\n  let random = Math.random() * totalWeight;\n  \n  for (const dest of destinations) {\n    random -= dest.weight;\n    if (random <= 0) return dest.module;\n  }\n  return destinations[0].module;\n}\n\nlet matchedDestinations = [];\n\nfor (const rule of routingRules) {\n  if (matchesPattern(eventType, rule.pattern)) {\n    if (rule.destinations) {\n      // Fan-out to all destinations, using weight for A/B when weights don't total 100\n      const totalWeight = rule.destinations.reduce((sum, d) => sum + d.weight, 0);\n      if (totalWeight > 100) {\n        // Fan-out mode: send to all\n        matchedDestinations = rule.destinations.map(d => d.module);\n      } else {\n        // A/B mode: select one based on weight\n        matchedDestinations = [selectByWeight(rule.destinations)];\n      }\n    } else {\n      matchedDestinations = [rule.destination];\n    }\n    break;\n  }\n}\n\nif (matchedDestinations.length === 0) {\n  return {\n    json: {\n      _routing: {\n        status: 'dead-letter',\n        reason: 'no_matching_rule',\n        eventType: eventType\n      },\n      originalEvent: event\n    }\n  };\n}\n\n// Resolve endpoints\nconst resolvedDestinations = matchedDestinations.map(moduleId => ({\n  moduleId: moduleId,\n  endpoint: moduleRegistry[moduleId] || null\n}));\n\nreturn {\n  json: {\n    _routing: {\n      status: 'matched',\n      destinations: resolvedDestinations,\n      eventType: eventType\n    },\n    event: {\n      specversion: event.specversion,\n      type: event.type,\n      source: event.source,\n      id: event.id,\n      time: event.time,\n      datacontenttype: event.datacontenttype,\n      data: event.data\n    }\n  }\n};"
+      },
+      "id": "determine-route",
+      "name": "Determine Route",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json._routing.status}}",
+              "value2": "matched"
+            }
+          ]
+        }
+      },
+      "id": "check-route",
+      "name": "Route Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Split into multiple items for fan-out\nconst routingInfo = $json._routing;\nconst event = $json.event;\n\nconst items = routingInfo.destinations.map(dest => ({\n  json: {\n    destination: dest,\n    event: event\n  }\n}));\n\nreturn items;"
+      },
+      "id": "split-destinations",
+      "name": "Split Destinations",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.destination.endpoint}}",
+        "method": "POST",
+        "bodyContentType": "json",
+        "body": "={{JSON.stringify($json.event)}}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "forward-to-module",
+      "name": "Forward to Module",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Aggregate routing results\nconst results = items.map(item => ({\n  module: item.json.destination?.moduleId || 'unknown',\n  status: item.json.statusCode || 500,\n  success: item.json.statusCode >= 200 && item.json.statusCode < 300\n}));\n\nreturn {\n  json: {\n    routed_to: results,\n    event_type: items[0]?.json.event?.type,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "aggregate-results",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1450, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1650, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Handle dead letter\nconst deadLetterEvent = {\n  original_event: $json.originalEvent,\n  reason: $json._routing.reason,\n  timestamp: new Date().toISOString(),\n  event_type: $json._routing.eventType\n};\n\n// TODO: Send to actual dead letter queue/storage\nconsole.log('Dead letter:', JSON.stringify(deadLetterEvent));\n\nreturn {\n  json: {\n    routed_to: 'dead-letter',\n    event_type: $json._routing.eventType,\n    reason: $json._routing.reason\n  }\n};"
+      },
+      "id": "dead-letter",
+      "name": "Dead Letter Handler",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "respond-dead-letter",
+      "name": "Respond Dead Letter",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Route": {
+      "main": [
+        [
+          {
+            "node": "Validate CloudEvents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate CloudEvents": {
+      "main": [
+        [
+          {
+            "node": "Determine Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Route": {
+      "main": [
+        [
+          {
+            "node": "Route Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Found?": {
+      "main": [
+        [
+          {
+            "node": "Split Destinations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dead Letter Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Destinations": {
+      "main": [
+        [
+          {
+            "node": "Forward to Module",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forward to Module": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Results": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dead Letter Handler": {
+      "main": [
+        [
+          {
+            "node": "Respond Dead Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "tags": [
+    {
+      "name": "arise-modular"
+    },
+    {
+      "name": "hub-router"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "{{UPDATED_AT}}",
+  "versionId": "{{VERSION_ID}}"
+}

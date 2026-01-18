@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CloudEvents Message Template",
+  "description": "Template for CloudEvents v1.0 messages used in Arise modular architecture",
+  "type": "object",
+  "required": ["specversion", "type", "source", "id", "data"],
+  "properties": {
+    "specversion": {
+      "type": "string",
+      "const": "1.0",
+      "description": "CloudEvents specification version - always 1.0"
+    },
+    "type": {
+      "type": "string",
+      "pattern": "^com\\.arise\\.[a-z]+\\.[a-z]+\\.[a-z]+\\.v[0-9]+$",
+      "description": "Event type following convention: com.arise.<domain>.<entity>.<action>.v<version>",
+      "examples": [
+        "com.arise.sensor.temperature.reading.v1",
+        "com.arise.sensor.temperature.validated.v1",
+        "com.arise.alert.threshold.exceeded.v1"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "description": "Module identifier that produced the event",
+      "examples": [
+        "sensor-collector-v1",
+        "data-validator-v1",
+        "alert-manager-v1"
+      ]
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique event identifier (UUID v4 recommended)"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event timestamp in ISO 8601 format"
+    },
+    "datacontenttype": {
+      "type": "string",
+      "const": "application/json",
+      "description": "Content type of data field - always application/json"
+    },
+    "data": {
+      "type": "object",
+      "description": "Event payload - schema varies by event type"
+    },
+    "correlationid": {
+      "type": "string",
+      "description": "Optional: ID of the original event that triggered this one (extension attribute)"
+    },
+    "traceparent": {
+      "type": "string",
+      "description": "Optional: W3C Trace Context header for distributed tracing (extension attribute)"
+    }
+  },
+  "examples": [
+    {
+      "specversion": "1.0",
+      "type": "com.arise.sensor.temperature.reading.v1",
+      "source": "sensor-collector-v1",
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "time": "2026-01-17T10:30:00Z",
+      "datacontenttype": "application/json",
+      "data": {
+        "sensorId": "temp-01",
+        "value": 72.5,
+        "unit": "fahrenheit",
+        "location": "building-a-floor-3"
+      }
+    },
+    {
+      "specversion": "1.0",
+      "type": "com.arise.sensor.temperature.validated.v1",
+      "source": "data-validator-v1",
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "time": "2026-01-17T10:30:01Z",
+      "datacontenttype": "application/json",
+      "correlationid": "550e8400-e29b-41d4-a716-446655440000",
+      "data": {
+        "sensorId": "temp-01",
+        "value": 72.5,
+        "unit": "fahrenheit",
+        "validationStatus": "valid",
+        "validatedAt": "2026-01-17T10:30:01Z"
+      }
+    },
+    {
+      "specversion": "1.0",
+      "type": "com.arise.alert.threshold.exceeded.v1",
+      "source": "alert-manager-v1",
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "time": "2026-01-17T10:30:02Z",
+      "datacontenttype": "application/json",
+      "correlationid": "550e8400-e29b-41d4-a716-446655440000",
+      "data": {
+        "alertId": "alert-001",
+        "sensorId": "temp-01",
+        "threshold": 70.0,
+        "actualValue": 72.5,
+        "severity": "warning",
+        "message": "Temperature exceeded threshold"
+      }
+    }
+  ]
+}

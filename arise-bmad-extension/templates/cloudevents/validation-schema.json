@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CloudEvents Validation Schema",
+  "description": "JSON Schema for validating CloudEvents v1.0 messages in Arise modular architecture",
+  "type": "object",
+  "required": ["specversion", "type", "source", "id"],
+  "properties": {
+    "specversion": {
+      "type": "string",
+      "const": "1.0",
+      "description": "The version of the CloudEvents specification"
+    },
+    "type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Event type identifier"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifies the context in which an event happened"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the event"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the event occurred"
+    },
+    "datacontenttype": {
+      "type": "string",
+      "description": "Content type of the data attribute"
+    },
+    "dataschema": {
+      "type": "string",
+      "format": "uri",
+      "description": "URI identifying the schema that data adheres to"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Describes the subject of the event"
+    },
+    "data": {
+      "description": "The event payload"
+    },
+    "data_base64": {
+      "type": "string",
+      "contentEncoding": "base64",
+      "description": "Base64-encoded event payload"
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "ariseEventType": {
+      "type": "string",
+      "pattern": "^com\\.arise\\.[a-z]+\\.[a-z]+\\.[a-z]+\\.v[0-9]+$",
+      "description": "Arise-specific event type pattern"
+    },
+    "ariseCloudEvent": {
+      "allOf": [
+        { "$ref": "#" },
+        {
+          "properties": {
+            "type": {
+              "$ref": "#/definitions/ariseEventType"
+            },
+            "datacontenttype": {
+              "const": "application/json"
+            },
+            "data": {
+              "type": "object"
+            }
+          },
+          "required": ["data"]
+        }
+      ]
+    }
+  },
+  "examples": {
+    "minimalValid": {
+      "specversion": "1.0",
+      "type": "com.arise.test.event.created.v1",
+      "source": "test-module-v1",
+      "id": "123e4567-e89b-12d3-a456-426614174000"
+    },
+    "fullValid": {
+      "specversion": "1.0",
+      "type": "com.arise.sensor.temperature.reading.v1",
+      "source": "sensor-collector-v1",
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "time": "2026-01-17T10:30:00Z",
+      "datacontenttype": "application/json",
+      "data": {
+        "sensorId": "temp-01",
+        "value": 72.5
+      }
+    },
+    "invalidVersion": {
+      "specversion": "0.3",
+      "type": "test.event",
+      "source": "test",
+      "id": "123",
+      "_invalid": true,
+      "_reason": "specversion must be 1.0"
+    },
+    "missingRequired": {
+      "specversion": "1.0",
+      "type": "test.event",
+      "_invalid": true,
+      "_reason": "missing required fields: source, id"
+    }
+  }
+}

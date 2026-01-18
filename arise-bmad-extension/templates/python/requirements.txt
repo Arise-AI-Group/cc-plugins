@@ -1,0 +1,24 @@
+# Arise Module - Python Dependencies
+# FastAPI and server
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Data validation
+pydantic>=2.5.0
+
+# YAML parsing (for AsyncAPI specs)
+pyyaml>=6.0.1
+
+# JSON Schema validation
+jsonschema>=4.21.0
+
+# CloudEvents SDK (optional but recommended)
+cloudevents>=1.10.0
+
+# HTTP client (for forwarding to other modules)
+httpx>=0.26.0
+
+# Development dependencies (optional)
+# pytest>=7.4.0
+# pytest-asyncio>=0.23.0
+# httpx>=0.26.0  # For testing

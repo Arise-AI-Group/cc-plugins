@@ -96,6 +96,11 @@
       "name": "meeting-intel",
       "source": "./meeting-intel",
       "description": "Meeting intelligence - extract entities, track decisions, action items, and build knowledge graphs from Fireflies, Loom, and Fathom transcripts"
+    },
+    {
+      "name": "arise-bmad-extension",
+      "source": "./arise-bmad-extension",
+      "description": "BMAD extension for AsyncAPI/CloudEvents-based modular architecture with n8n integration"
     }
   ]
 }
