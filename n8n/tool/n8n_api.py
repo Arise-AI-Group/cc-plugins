@@ -14,6 +14,7 @@ Usage (CLI):
     ./run tool/n8n_api.py deactivate <workflow_id>
     ./run tool/n8n_api.py execute <workflow_id> [input_json]
     ./run tool/n8n_api.py executions <workflow_id> [limit]
+    ./run tool/n8n_api.py execution <execution_id> [--full]
     ./run tool/n8n_api.py export <workflow_id> <output_file>
     ./run tool/n8n_api.py delete <workflow_id>
     ./run tool/n8n_api.py info <workflow_id>
@@ -111,8 +112,10 @@ class N8nClient:
     def update_workflow(self, workflow_id: str, workflow_data: dict) -> dict:
         """Update an existing workflow."""
         # Remove fields that shouldn't be in update request
+        # The n8n API only accepts: name, nodes, connections, settings, staticData
+        allowed_fields = ["name", "nodes", "connections", "settings", "staticData"]
         clean_data = {k: v for k, v in workflow_data.items()
-                      if k not in ["id", "createdAt", "updatedAt"]}
+                      if k in allowed_fields}
         return self._request("PUT", f"/workflows/{workflow_id}", clean_data)
 
     def delete_workflow(self, workflow_id: str) -> dict:
@@ -246,9 +249,12 @@ class N8nClient:
         result = self._request("GET", endpoint)
         return result.get("data", [])
 
-    def get_execution(self, execution_id: str) -> dict:
+    def get_execution(self, execution_id: str, include_data: bool = True) -> dict:
         """Get details of a specific execution."""
-        return self._request("GET", f"/executions/{execution_id}")
+        endpoint = f"/executions/{execution_id}"
+        if include_data:
+            endpoint += "?includeData=true"
+        return self._request("GET", endpoint)
 
     # --- Convenience Methods ---
 
@@ -379,6 +385,36 @@ def main():
                 status = ex.get('status', 'unknown')
                 marker = "OK" if status == "success" else "ERR" if status == "error" else "  "
                 print(f"  [{marker}] {ex.get('id')} | {ex.get('workflowId')} | {status} | {ex.get('startedAt', 'N/A')}")
+
+        elif command == "execution":
+            if len(sys.argv) < 3:
+                print("Usage: ./run tool/n8n_api.py execution <execution_id>")
+                sys.exit(1)
+            execution_id = sys.argv[2]
+            execution = client.get_execution(execution_id)
+
+            # Print summary
+            status = execution.get('status', 'unknown')
+            print(f"\nExecution {execution_id}:")
+            print(f"  Status: {status}")
+            print(f"  Workflow: {execution.get('workflowId')}")
+            print(f"  Started: {execution.get('startedAt', 'N/A')}")
+            print(f"  Finished: {execution.get('stoppedAt', 'N/A')}")
+
+            # Print error if present
+            result_data = execution.get('data', {}).get('resultData', {})
+            error = result_data.get('error', {})
+            if error:
+                print(f"\n  ERROR:")
+                print(f"    Message: {error.get('message', 'No message')}")
+                print(f"    Node: {error.get('node', 'Unknown')}")
+                if error.get('description'):
+                    print(f"    Description: {error.get('description')}")
+
+            # Option to print full JSON
+            if len(sys.argv) > 3 and sys.argv[3] == "--full":
+                print("\nFull execution data:")
+                print(json.dumps(execution, indent=2))
 
         elif command == "export":
             if len(sys.argv) < 4:
