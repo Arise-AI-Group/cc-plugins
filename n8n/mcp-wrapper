@@ -1,0 +1,85 @@
+#!/bin/bash
+# MCP wrapper for n8n-mcp development assistant
+# Resolves credentials from n8n.json profiles or falls back to .env
+
+set -e
+
+# Load base environment from cc-plugins config
+if [ -f "$HOME/.config/cc-plugins/.env" ]; then
+    export $(grep -v '^#' "$HOME/.config/cc-plugins/.env" | grep -v '^$' | xargs 2>/dev/null) || true
+fi
+
+N8N_CONFIG="$HOME/.config/cc-plugins/n8n.json"
+
+# Function to resolve credentials from profile or environment
+resolve_credentials() {
+    local api_url=""
+    local api_key=""
+
+    # Check if n8n.json exists and has profiles
+    if [ -f "$N8N_CONFIG" ]; then
+        # Get default profile name (or first profile if only one exists)
+        local default_profile
+        default_profile=$(python3 -c "
+import json
+import sys
+try:
+    with open('$N8N_CONFIG') as f:
+        config = json.load(f)
+    profiles = config.get('profiles', {})
+    default = config.get('default_profile')
+    if default and default in profiles:
+        print(default)
+    elif len(profiles) == 1:
+        print(list(profiles.keys())[0])
+except:
+    pass
+" 2>/dev/null)
+
+        if [ -n "$default_profile" ]; then
+            # Get profile details
+            local profile_data
+            profile_data=$(python3 -c "
+import json
+import os
+try:
+    with open('$N8N_CONFIG') as f:
+        config = json.load(f)
+    profile = config.get('profiles', {}).get('$default_profile', {})
+    api_url = profile.get('api_url', '')
+    api_key_env = profile.get('api_key_env', '')
+    api_key = os.environ.get(api_key_env, '') if api_key_env else ''
+    print(f'{api_url}|{api_key}')
+except:
+    print('|')
+" 2>/dev/null)
+
+            api_url="${profile_data%%|*}"
+            api_key="${profile_data#*|}"
+
+            if [ -n "$api_url" ] && [ -n "$api_key" ]; then
+                export N8N_API_URL="$api_url"
+                export N8N_API_KEY="$api_key"
+                echo "n8n-mcp using profile: $default_profile" >&2
+                return 0
+            fi
+        fi
+    fi
+
+    # Fall back to environment variables
+    if [ -n "$N8N_API_URL" ] && [ -n "$N8N_API_KEY" ]; then
+        echo "n8n-mcp using environment variables" >&2
+        return 0
+    fi
+
+    # No credentials found - n8n-mcp will still work for doc-only features
+    echo "Warning: No n8n credentials configured. Some features may be limited." >&2
+    echo "Configure with: ./run tool/n8n_api.py profile add <name> --url <url> --api-key-env <ENV_VAR>" >&2
+    return 0
+}
+
+# Resolve credentials
+resolve_credentials
+
+# Run n8n-mcp
+exec npx -y n8n-mcp

@@ -4,20 +4,27 @@ n8n API Integration Script
 
 Execution tool for managing n8n workflows via the REST API.
 Supports: list, get, create, update, activate, deactivate, execute, and get execution results.
+Supports multiple n8n instances via profiles.
 
 Usage (CLI):
-    ./run tool/n8n_api.py list
-    ./run tool/n8n_api.py get <workflow_id>
-    ./run tool/n8n_api.py create <json_file>
-    ./run tool/n8n_api.py update <workflow_id> <json_file>
-    ./run tool/n8n_api.py activate <workflow_id>
-    ./run tool/n8n_api.py deactivate <workflow_id>
-    ./run tool/n8n_api.py execute <workflow_id> [input_json]
-    ./run tool/n8n_api.py executions <workflow_id> [limit]
-    ./run tool/n8n_api.py execution <execution_id> [--full]
-    ./run tool/n8n_api.py export <workflow_id> <output_file>
-    ./run tool/n8n_api.py delete <workflow_id>
-    ./run tool/n8n_api.py info <workflow_id>
+    ./run tool/n8n_api.py [--profile <name>] list
+    ./run tool/n8n_api.py [--profile <name>] get <workflow_id>
+    ./run tool/n8n_api.py [--profile <name>] create <json_file>
+    ./run tool/n8n_api.py [--profile <name>] update <workflow_id> <json_file>
+    ./run tool/n8n_api.py [--profile <name>] activate <workflow_id>
+    ./run tool/n8n_api.py [--profile <name>] deactivate <workflow_id>
+    ./run tool/n8n_api.py [--profile <name>] execute <workflow_id> [input_json]
+    ./run tool/n8n_api.py [--profile <name>] executions <workflow_id> [limit]
+    ./run tool/n8n_api.py [--profile <name>] execution <execution_id> [--full]
+    ./run tool/n8n_api.py [--profile <name>] export <workflow_id> <output_file>
+    ./run tool/n8n_api.py [--profile <name>] delete <workflow_id>
+    ./run tool/n8n_api.py [--profile <name>] info <workflow_id>
+
+Profile Management:
+    ./run tool/n8n_api.py profile list
+    ./run tool/n8n_api.py profile add <name> --url <url> --api-key-env <ENV_VAR> [--description <desc>]
+    ./run tool/n8n_api.py profile default <name>
+    ./run tool/n8n_api.py profile remove <name>
 
 IMPORTANT: The n8n public API does not support direct workflow execution.
 The 'execute' command works by calling the workflow's webhook trigger.
@@ -26,7 +33,8 @@ Use 'info' to see how to test a specific workflow.
 
 Usage (Module):
     from tool.n8n_api import N8nClient
-    client = N8nClient()
+    client = N8nClient()  # Uses default profile or env vars
+    client = N8nClient(profile="staging")  # Uses specific profile
     workflows = client.list_workflows()
 """
 
@@ -38,22 +46,31 @@ from pathlib import Path
 from typing import Optional, Dict, List, Any
 
 from .config import get_api_key
-
-N8N_API_URL = get_api_key("N8N_API_URL").rstrip("/")
-N8N_API_KEY = get_api_key("N8N_API_KEY")
+from . import profiles
 
 
 class N8nClient:
     """Client for interacting with n8n REST API."""
 
-    def __init__(self, base_url: str = None, api_key: str = None):
-        self.base_url = (base_url or N8N_API_URL).rstrip("/")
-        self.api_key = api_key or N8N_API_KEY
+    def __init__(self, base_url: str = None, api_key: str = None, profile: str = None):
+        """
+        Initialize n8n client.
 
-        if not self.base_url:
-            raise ValueError("N8N_API_URL not configured. Set it in .env file.")
-        if not self.api_key:
-            raise ValueError("N8N_API_KEY not configured. Set it in .env file.")
+        Args:
+            base_url: Override API URL
+            api_key: Override API key
+            profile: Profile name to use (from n8n.json)
+
+        If base_url and api_key are not provided, credentials are resolved from:
+        1. Specified profile (if profile arg provided)
+        2. Default profile from n8n.json
+        3. N8N_API_URL/N8N_API_KEY environment variables
+        """
+        if base_url and api_key:
+            self.base_url = base_url.rstrip("/")
+            self.api_key = api_key
+        else:
+            self.base_url, self.api_key = profiles.resolve_credentials(profile)
 
         self.headers = {
             "X-N8N-API-KEY": self.api_key,
@@ -170,7 +187,7 @@ class N8nClient:
         if not workflow.get("active"):
             raise Exception(
                 f"Workflow '{workflow.get('name')}' is not active. "
-                "Activate it first with: ./run modules/n8n/tool/n8n_api.py activate {workflow_id}"
+                f"Activate it first with: ./run tool/n8n_api.py activate {workflow_id}"
             )
 
         # Get webhook path from the first webhook node
@@ -299,15 +316,150 @@ def print_workflow_summary(workflow: dict):
     print()
 
 
+def handle_profile_command(args: List[str]) -> None:
+    """Handle profile management commands."""
+    if len(args) < 1:
+        print("Profile commands:")
+        print("  profile list                                    - List all profiles")
+        print("  profile add <name> --url <url> --api-key-env <ENV_VAR> [--description <desc>]")
+        print("  profile default <name>                          - Set default profile")
+        print("  profile remove <name>                           - Remove a profile")
+        sys.exit(1)
+
+    subcommand = args[0]
+
+    if subcommand == "list":
+        config = profiles.get_n8n_config()
+        profile_list = profiles.list_profiles()
+        default_name = profiles.get_default_profile_name()
+
+        if not profile_list:
+            print("\nNo profiles configured.")
+            print("\nUsing environment variables:")
+            api_url = get_api_key("N8N_API_URL")
+            if api_url:
+                print(f"  N8N_API_URL: {api_url}")
+                print(f"  N8N_API_KEY: {'(set)' if get_api_key('N8N_API_KEY') else '(not set)'}")
+            else:
+                print("  No N8N_API_URL configured")
+            print("\nTo add a profile:")
+            print("  ./run tool/n8n_api.py profile add production --url https://n8n.example.com --api-key-env N8N_PROD_API_KEY")
+            return
+
+        print(f"\nConfigured profiles ({len(profile_list)}):\n")
+        for name, profile in profile_list.items():
+            default_marker = " (default)" if name == default_name else ""
+            desc = f" - {profile.description}" if profile.description else ""
+            key_status = "(key set)" if profile.api_key else "(key missing)"
+            print(f"  {name}{default_marker}: {profile.api_url} {key_status}{desc}")
+
+        print()
+
+    elif subcommand == "add":
+        if len(args) < 2:
+            print("Usage: profile add <name> --url <url> --api-key-env <ENV_VAR> [--description <desc>]")
+            sys.exit(1)
+
+        name = args[1]
+        url = None
+        api_key_env = None
+        description = None
+
+        # Parse remaining args
+        i = 2
+        while i < len(args):
+            if args[i] == "--url" and i + 1 < len(args):
+                url = args[i + 1]
+                i += 2
+            elif args[i] == "--api-key-env" and i + 1 < len(args):
+                api_key_env = args[i + 1]
+                i += 2
+            elif args[i] == "--description" and i + 1 < len(args):
+                description = args[i + 1]
+                i += 2
+            else:
+                i += 1
+
+        if not url:
+            print("Error: --url is required")
+            sys.exit(1)
+        if not api_key_env:
+            print("Error: --api-key-env is required")
+            sys.exit(1)
+
+        profiles.add_profile(name, url, api_key_env, description)
+        print(f"Added profile: {name}")
+        print(f"  URL: {url}")
+        print(f"  API Key Env: {api_key_env}")
+        if description:
+            print(f"  Description: {description}")
+
+        # Check if the env var is set
+        if not get_api_key(api_key_env):
+            print(f"\nWarning: {api_key_env} is not set in ~/.config/cc-plugins/.env")
+            print(f"Add it with: echo '{api_key_env}=your_api_key' >> ~/.config/cc-plugins/.env")
+
+    elif subcommand == "default":
+        if len(args) < 2:
+            print("Usage: profile default <name>")
+            sys.exit(1)
+
+        name = args[1]
+        if profiles.set_default_profile(name):
+            print(f"Set default profile: {name}")
+        else:
+            print(f"Error: Profile '{name}' not found")
+            sys.exit(1)
+
+    elif subcommand == "remove":
+        if len(args) < 2:
+            print("Usage: profile remove <name>")
+            sys.exit(1)
+
+        name = args[1]
+        if profiles.remove_profile(name):
+            print(f"Removed profile: {name}")
+        else:
+            print(f"Error: Profile '{name}' not found")
+            sys.exit(1)
+
+    else:
+        print(f"Unknown profile command: {subcommand}")
+        sys.exit(1)
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
 
-    command = sys.argv[1].lower()
+    # Parse --profile flag
+    args = sys.argv[1:]
+    profile_name = None
 
+    if args[0] == "--profile":
+        if len(args) < 3:
+            print("Usage: ./run tool/n8n_api.py --profile <name> <command> [args...]")
+            sys.exit(1)
+        profile_name = args[1]
+        args = args[2:]
+
+    if not args:
+        print(__doc__)
+        sys.exit(1)
+
+    command = args[0].lower()
+
+    # Handle profile command separately (no client needed)
+    if command == "profile":
+        handle_profile_command(args[1:])
+        return
+
+    # Create client with profile
     try:
-        client = N8nClient()
+        client = N8nClient(profile=profile_name)
+        if profile_name:
+            print(f"[Using profile: {profile_name}]\n")
     except ValueError as e:
         print(f"Configuration error: {e}")
         sys.exit(1)
@@ -321,54 +473,54 @@ def main():
                 print_workflow_summary(wf)
 
         elif command == "get":
-            if len(sys.argv) < 3:
-                print("Usage: ./run tools/n8n_api.py get <workflow_id>")
+            if len(args) < 2:
+                print("Usage: ./run tool/n8n_api.py get <workflow_id>")
                 sys.exit(1)
-            workflow_id = sys.argv[2]
+            workflow_id = args[1]
             workflow = client.get_workflow(workflow_id)
             print(json.dumps(workflow, indent=2))
 
         elif command == "create":
-            if len(sys.argv) < 3:
-                print("Usage: ./run tools/n8n_api.py create <json_file>")
+            if len(args) < 2:
+                print("Usage: ./run tool/n8n_api.py create <json_file>")
                 sys.exit(1)
-            json_file = sys.argv[2]
+            json_file = args[1]
             result = client.deploy_from_file(json_file)
             print(f"Created workflow: {result.get('id')} - {result.get('name')}")
 
         elif command == "update":
-            if len(sys.argv) < 4:
-                print("Usage: ./run tools/n8n_api.py update <workflow_id> <json_file>")
+            if len(args) < 3:
+                print("Usage: ./run tool/n8n_api.py update <workflow_id> <json_file>")
                 sys.exit(1)
-            workflow_id = sys.argv[2]
-            json_file = sys.argv[3]
+            workflow_id = args[1]
+            json_file = args[2]
             result = client.deploy_from_file(json_file, workflow_id)
             print(f"Updated workflow: {result.get('id')} - {result.get('name')}")
 
         elif command == "activate":
-            if len(sys.argv) < 3:
-                print("Usage: ./run tools/n8n_api.py activate <workflow_id>")
+            if len(args) < 2:
+                print("Usage: ./run tool/n8n_api.py activate <workflow_id>")
                 sys.exit(1)
-            workflow_id = sys.argv[2]
+            workflow_id = args[1]
             result = client.activate_workflow(workflow_id)
             print(f"Activated workflow: {workflow_id}")
 
         elif command == "deactivate":
-            if len(sys.argv) < 3:
-                print("Usage: ./run tools/n8n_api.py deactivate <workflow_id>")
+            if len(args) < 2:
+                print("Usage: ./run tool/n8n_api.py deactivate <workflow_id>")
                 sys.exit(1)
-            workflow_id = sys.argv[2]
+            workflow_id = args[1]
             result = client.deactivate_workflow(workflow_id)
             print(f"Deactivated workflow: {workflow_id}")
 
         elif command == "execute":
-            if len(sys.argv) < 3:
-                print("Usage: ./run tools/n8n_api.py execute <workflow_id> [input_json]")
+            if len(args) < 2:
+                print("Usage: ./run tool/n8n_api.py execute <workflow_id> [input_json]")
                 sys.exit(1)
-            workflow_id = sys.argv[2]
+            workflow_id = args[1]
             input_data = None
-            if len(sys.argv) > 3:
-                input_data = json.loads(sys.argv[3])
+            if len(args) > 2:
+                input_data = json.loads(args[2])
 
             print(f"Executing workflow {workflow_id}...")
             result = client.execute_workflow(workflow_id, input_data)
@@ -376,8 +528,8 @@ def main():
             print(json.dumps(result, indent=2))
 
         elif command == "executions":
-            workflow_id = sys.argv[2] if len(sys.argv) > 2 else None
-            limit = int(sys.argv[3]) if len(sys.argv) > 3 else 20
+            workflow_id = args[1] if len(args) > 1 else None
+            limit = int(args[2]) if len(args) > 2 else 20
 
             executions = client.get_executions(workflow_id, limit)
             print(f"\nLast {len(executions)} execution(s):\n")
@@ -387,10 +539,10 @@ def main():
                 print(f"  [{marker}] {ex.get('id')} | {ex.get('workflowId')} | {status} | {ex.get('startedAt', 'N/A')}")
 
         elif command == "execution":
-            if len(sys.argv) < 3:
-                print("Usage: ./run tool/n8n_api.py execution <execution_id>")
+            if len(args) < 2:
+                print("Usage: ./run tool/n8n_api.py execution <execution_id> [--full]")
                 sys.exit(1)
-            execution_id = sys.argv[2]
+            execution_id = args[1]
             execution = client.get_execution(execution_id)
 
             # Print summary
@@ -412,24 +564,24 @@ def main():
                     print(f"    Description: {error.get('description')}")
 
             # Option to print full JSON
-            if len(sys.argv) > 3 and sys.argv[3] == "--full":
+            if len(args) > 2 and args[2] == "--full":
                 print("\nFull execution data:")
                 print(json.dumps(execution, indent=2))
 
         elif command == "export":
-            if len(sys.argv) < 4:
-                print("Usage: ./run tools/n8n_api.py export <workflow_id> <output_file>")
+            if len(args) < 3:
+                print("Usage: ./run tool/n8n_api.py export <workflow_id> <output_file>")
                 sys.exit(1)
-            workflow_id = sys.argv[2]
-            output_file = sys.argv[3]
+            workflow_id = args[1]
+            output_file = args[2]
             path = client.export_to_file(workflow_id, output_file)
             print(f"Exported workflow {workflow_id} to {path}")
 
         elif command == "delete":
-            if len(sys.argv) < 3:
-                print("Usage: ./run modules/n8n/tool/n8n_api.py delete <workflow_id>")
+            if len(args) < 2:
+                print("Usage: ./run tool/n8n_api.py delete <workflow_id>")
                 sys.exit(1)
-            workflow_id = sys.argv[2]
+            workflow_id = args[1]
             confirm = input(f"Delete workflow {workflow_id}? (yes/no): ")
             if confirm.lower() == "yes":
                 client.delete_workflow(workflow_id)
@@ -438,10 +590,10 @@ def main():
                 print("Cancelled.")
 
         elif command == "info":
-            if len(sys.argv) < 3:
-                print("Usage: ./run modules/n8n/tool/n8n_api.py info <workflow_id>")
+            if len(args) < 2:
+                print("Usage: ./run tool/n8n_api.py info <workflow_id>")
                 sys.exit(1)
-            workflow_id = sys.argv[2]
+            workflow_id = args[1]
             info = client.test_workflow(workflow_id)
             print(f"\nWorkflow: {info['name']}")
             print(f"ID: {info['workflow_id']}")
