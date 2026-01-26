@@ -290,6 +290,363 @@ N8N_STAGING_API_KEY=your_staging_key
 {{ $today }}
 ```
 
+## Data Table Node Reference
+
+Data Tables provide persistent storage across workflow executions. This reference shows the exact JSON structure for each operation.
+
+### Key Concepts
+
+| Concept | Description |
+|---------|-------------|
+| `dataTableId` | Reference tables by `mode` (list/name/id) + `value` |
+| `columns` (rows) | Uses resourceMapper with `mappingMode` + `value` object |
+| `columns` (tables) | Uses fixedCollection with `column` array of name/type |
+| Filter conditions | eq, ne, gt, gte, lt, lte, contains, isEmpty, isNotEmpty, isTrue, isFalse |
+| Column types | string, number, boolean, date |
+| typeVersion | Always use `1.1` for Data Table nodes |
+
+### Row Operations
+
+#### Insert Row
+
+```json
+{
+  "parameters": {
+    "resource": "row",
+    "operation": "insert",
+    "dataTableId": {
+      "mode": "name",
+      "value": "my_contacts"
+    },
+    "columns": {
+      "mappingMode": "defineBelow",
+      "value": {
+        "name": "={{ $json.name }}",
+        "email": "={{ $json.email }}",
+        "status": "active",
+        "created_at": "={{ $now.toISO() }}"
+      }
+    },
+    "options": {
+      "optimizeBulk": false
+    }
+  },
+  "type": "n8n-nodes-base.dataTable",
+  "typeVersion": 1.1
+}
+```
+
+**Required**: `dataTableId`, `columns`
+**Tip**: Set `optimizeBulk: true` for 5x faster batch inserts (won't return inserted data)
+
+#### Get Rows
+
+```json
+{
+  "parameters": {
+    "resource": "row",
+    "operation": "get",
+    "dataTableId": {
+      "mode": "name",
+      "value": "my_contacts"
+    },
+    "matchType": "allConditions",
+    "filters": {
+      "conditions": [
+        {
+          "keyName": "status",
+          "condition": "eq",
+          "keyValue": "active"
+        }
+      ]
+    },
+    "returnAll": false,
+    "limit": 50,
+    "orderBy": true,
+    "orderByColumn": "createdAt",
+    "orderByDirection": "DESC"
+  },
+  "type": "n8n-nodes-base.dataTable",
+  "typeVersion": 1.1
+}
+```
+
+**Required**: `dataTableId`
+**Optional**: `matchType`, `filters`, `returnAll`, `limit`, `orderBy*`
+
+#### Update Rows
+
+```json
+{
+  "parameters": {
+    "resource": "row",
+    "operation": "update",
+    "dataTableId": {
+      "mode": "id",
+      "value": "table-uuid-here"
+    },
+    "matchType": "allConditions",
+    "filters": {
+      "conditions": [
+        {
+          "keyName": "email",
+          "condition": "eq",
+          "keyValue": "={{ $json.email }}"
+        }
+      ]
+    },
+    "columns": {
+      "mappingMode": "defineBelow",
+      "value": {
+        "status": "updated",
+        "updated_at": "={{ $now.toISO() }}"
+      }
+    },
+    "options": {
+      "dryRun": false
+    }
+  },
+  "type": "n8n-nodes-base.dataTable",
+  "typeVersion": 1.1
+}
+```
+
+**Required**: `dataTableId`, `columns`
+**Tip**: Use `dryRun: true` to preview changes without applying
+
+#### Upsert Rows (Update or Insert)
+
+```json
+{
+  "parameters": {
+    "resource": "row",
+    "operation": "upsert",
+    "dataTableId": {
+      "mode": "name",
+      "value": "sessions"
+    },
+    "matchType": "allConditions",
+    "filters": {
+      "conditions": [
+        {
+          "keyName": "session_id",
+          "condition": "eq",
+          "keyValue": "={{ $json.sessionId }}"
+        }
+      ]
+    },
+    "columns": {
+      "mappingMode": "defineBelow",
+      "value": {
+        "session_id": "={{ $json.sessionId }}",
+        "data": "={{ JSON.stringify($json.data) }}",
+        "updated_at": "={{ $now.toISO() }}"
+      }
+    },
+    "options": {
+      "dryRun": false
+    }
+  },
+  "type": "n8n-nodes-base.dataTable",
+  "typeVersion": 1.1
+}
+```
+
+**Use case**: Session storage, state management, idempotent updates
+
+#### Delete Rows
+
+```json
+{
+  "parameters": {
+    "resource": "row",
+    "operation": "deleteRows",
+    "dataTableId": {
+      "mode": "name",
+      "value": "my_contacts"
+    },
+    "matchType": "anyCondition",
+    "filters": {
+      "conditions": [
+        {
+          "keyName": "status",
+          "condition": "eq",
+          "keyValue": "deleted"
+        }
+      ]
+    },
+    "options": {
+      "dryRun": true
+    }
+  },
+  "type": "n8n-nodes-base.dataTable",
+  "typeVersion": 1.1
+}
+```
+
+**Required**: `dataTableId`
+**Tip**: Always test with `dryRun: true` first
+
+#### Row Exists (Deduplication Check)
+
+```json
+{
+  "parameters": {
+    "resource": "row",
+    "operation": "rowExists",
+    "dataTableId": {
+      "mode": "name",
+      "value": "processed_items"
+    },
+    "matchType": "allConditions",
+    "filters": {
+      "conditions": [
+        {
+          "keyName": "item_id",
+          "condition": "eq",
+          "keyValue": "={{ $json.id }}"
+        }
+      ]
+    }
+  },
+  "type": "n8n-nodes-base.dataTable",
+  "typeVersion": 1.1
+}
+```
+
+**Required**: `dataTableId`, `filters` (minimum 1 condition)
+**Routing**: Output 0 = row exists, Output 1 = row not found
+
+#### Row Not Exists
+
+Same structure as `rowExists`, but routing is inverted:
+**Routing**: Output 0 = row NOT found (new item), Output 1 = row exists (duplicate)
+
+### Table Operations
+
+#### Create Table
+
+```json
+{
+  "parameters": {
+    "resource": "table",
+    "operation": "create",
+    "tableName": "my_contacts",
+    "columns": {
+      "column": [
+        { "name": "name", "type": "string" },
+        { "name": "email", "type": "string" },
+        { "name": "age", "type": "number" },
+        { "name": "is_active", "type": "boolean" },
+        { "name": "created_at", "type": "date" }
+      ]
+    },
+    "options": {
+      "createIfNotExists": true
+    }
+  },
+  "type": "n8n-nodes-base.dataTable",
+  "typeVersion": 1.1
+}
+```
+
+**Required**: `tableName`
+**Tip**: `createIfNotExists: true` prevents errors if table already exists
+
+#### List Tables
+
+```json
+{
+  "parameters": {
+    "resource": "table",
+    "operation": "list",
+    "returnAll": true,
+    "options": {
+      "filterName": "contacts",
+      "sortField": "createdAt",
+      "sortDirection": "desc"
+    }
+  },
+  "type": "n8n-nodes-base.dataTable",
+  "typeVersion": 1.1
+}
+```
+
+#### Update Table (Rename)
+
+```json
+{
+  "parameters": {
+    "resource": "table",
+    "operation": "update",
+    "dataTableId": {
+      "mode": "name",
+      "value": "old_name"
+    },
+    "newName": "new_name"
+  },
+  "type": "n8n-nodes-base.dataTable",
+  "typeVersion": 1.1
+}
+```
+
+**Required**: `dataTableId`, `newName`
+
+#### Delete Table
+
+```json
+{
+  "parameters": {
+    "resource": "table",
+    "operation": "delete",
+    "dataTableId": {
+      "mode": "id",
+      "value": "table-uuid-here"
+    }
+  },
+  "type": "n8n-nodes-base.dataTable",
+  "typeVersion": 1.1
+}
+```
+
+**Warning**: Permanently deletes table and all data
+
+### Common Filter Patterns
+
+| Pattern | Configuration |
+|---------|---------------|
+| Exact match | `{ "keyName": "email", "condition": "eq", "keyValue": "user@example.com" }` |
+| Not equal | `{ "keyName": "status", "condition": "ne", "keyValue": "deleted" }` |
+| Contains text | `{ "keyName": "name", "condition": "contains", "keyValue": "John" }` |
+| Is empty | `{ "keyName": "notes", "condition": "isEmpty" }` |
+| Is not empty | `{ "keyName": "email", "condition": "isNotEmpty" }` |
+| Boolean true | `{ "keyName": "is_active", "condition": "isTrue" }` |
+| Boolean false | `{ "keyName": "is_active", "condition": "isFalse" }` |
+| Greater than | `{ "keyName": "age", "condition": "gt", "keyValue": "18" }` |
+| Less than or equal | `{ "keyName": "score", "condition": "lte", "keyValue": "100" }` |
+
+### Data Table Templates
+
+Ready-to-deploy workflow templates are available in `templates/`:
+
+| Template | Purpose |
+|----------|---------|
+| `datatable-crud.json` | All CRUD operations demo |
+| `datatable-dedup.json` | Deduplication with rowExists |
+| `datatable-session.json` | Session state with upsert |
+
+Deploy with: `./run tool/n8n_api.py create templates/datatable-crud.json`
+
+### Validation
+
+Before deploying workflows with Data Table nodes, validate the configuration:
+
+```bash
+./run tool/validate_datatable.py workflows/my_workflow.json
+```
+
+This catches missing required properties before deployment.
+
 ## Edge Cases & Troubleshooting
 
 ### API Limitations

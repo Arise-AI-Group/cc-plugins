@@ -1,0 +1,222 @@
+{
+  "name": "Data Table Deduplication Demo",
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "datatable-dedup-demo",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "datatable-dedup",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "check-exists",
+      "name": "Check If Exists",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [450, 300],
+      "parameters": {
+        "resource": "row",
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "mode": "name",
+          "value": "processed_items"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "item_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.body.id }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "insert-new",
+      "name": "Insert New Item",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [700, 200],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "mode": "name",
+          "value": "processed_items"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "item_id": "={{ $json.body.id }}",
+            "data": "={{ JSON.stringify($json.body) }}",
+            "processed_at": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "set-new",
+      "name": "New Item Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 200],
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "value": "created",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "value": "Item processed successfully",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false
+      }
+    },
+    {
+      "id": "set-duplicate",
+      "name": "Duplicate Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [700, 400],
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "value": "skipped",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "value": "Item already processed",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false
+      }
+    },
+    {
+      "id": "merge",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1100, 300],
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition"
+      }
+    },
+    {
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1300, 300],
+      "parameters": {
+        "respondWith": "allIncomingItems"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Check If Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Exists": {
+      "main": [
+        [
+          {
+            "node": "Insert New Item",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Duplicate Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert New Item": {
+      "main": [
+        [
+          {
+            "node": "New Item Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Item Response": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate Response": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

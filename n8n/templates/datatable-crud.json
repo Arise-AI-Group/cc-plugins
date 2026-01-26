@@ -1,0 +1,216 @@
+{
+  "name": "Data Table CRUD Demo",
+  "nodes": [
+    {
+      "id": "trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {}
+    },
+    {
+      "id": "create-table",
+      "name": "Create Table",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [450, 300],
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "demo_contacts",
+        "columns": {
+          "column": [
+            { "name": "name", "type": "string" },
+            { "name": "email", "type": "string" },
+            { "name": "status", "type": "string" },
+            { "name": "score", "type": "number" },
+            { "name": "created_at", "type": "date" }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      }
+    },
+    {
+      "id": "insert-row",
+      "name": "Insert Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [650, 300],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "mode": "name",
+          "value": "demo_contacts"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "Demo User",
+            "email": "demo@example.com",
+            "status": "active",
+            "score": 100,
+            "created_at": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "get-rows",
+      "name": "Get Rows",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [850, 300],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "mode": "name",
+          "value": "demo_contacts"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "active"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 10,
+        "orderBy": true,
+        "orderByColumn": "createdAt",
+        "orderByDirection": "DESC"
+      }
+    },
+    {
+      "id": "update-row",
+      "name": "Update Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [1050, 300],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "mode": "name",
+          "value": "demo_contacts"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "condition": "eq",
+              "keyValue": "demo@example.com"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "updated",
+            "score": 150
+          }
+        },
+        "options": {
+          "dryRun": false
+        }
+      }
+    },
+    {
+      "id": "delete-row",
+      "name": "Delete Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [1250, 300],
+      "parameters": {
+        "resource": "row",
+        "operation": "deleteRows",
+        "dataTableId": {
+          "mode": "name",
+          "value": "demo_contacts"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "condition": "eq",
+              "keyValue": "demo@example.com"
+            }
+          ]
+        },
+        "options": {
+          "dryRun": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Create Table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Table": {
+      "main": [
+        [
+          {
+            "node": "Insert Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Row": {
+      "main": [
+        [
+          {
+            "node": "Get Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Rows": {
+      "main": [
+        [
+          {
+            "node": "Update Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Row": {
+      "main": [
+        [
+          {
+            "node": "Delete Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

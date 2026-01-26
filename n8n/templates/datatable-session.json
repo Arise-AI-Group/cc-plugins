@@ -1,0 +1,202 @@
+{
+  "name": "Data Table Session Storage Demo",
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "datatable-session-demo",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "datatable-session",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "get-session",
+      "name": "Get Current Session",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [450, 300],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "mode": "name",
+          "value": "sessions"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.body.session_id }}"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 1
+      }
+    },
+    {
+      "id": "process-session",
+      "name": "Process Session Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "parameters": {
+        "jsCode": "// Get incoming request data\nconst request = $input.first().json.body || {};\nconst sessionId = request.session_id;\nconst newData = request.data || {};\n\n// Get existing session data (if any)\nconst existingItems = $input.all();\nlet existingData = {};\nlet messageCount = 0;\n\nif (existingItems.length > 1) {\n  // Session exists - item at index 1 is from Get Session\n  const existing = existingItems[1]?.json;\n  if (existing && existing.data) {\n    try {\n      existingData = typeof existing.data === 'string' \n        ? JSON.parse(existing.data) \n        : existing.data;\n      messageCount = existing.message_count || 0;\n    } catch (e) {\n      existingData = {};\n    }\n  }\n}\n\n// Merge session data\nconst mergedData = {\n  ...existingData,\n  ...newData,\n  last_activity: new Date().toISOString()\n};\n\nreturn {\n  json: {\n    session_id: sessionId,\n    data: JSON.stringify(mergedData),\n    message_count: messageCount + 1,\n    updated_at: new Date().toISOString(),\n    is_new_session: messageCount === 0\n  }\n};"
+      }
+    },
+    {
+      "id": "upsert-session",
+      "name": "Upsert Session",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [850, 300],
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "mode": "name",
+          "value": "sessions"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.session_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "={{ $json.session_id }}",
+            "data": "={{ $json.data }}",
+            "message_count": "={{ $json.message_count }}",
+            "updated_at": "={{ $json.updated_at }}"
+          }
+        },
+        "options": {
+          "dryRun": false
+        }
+      }
+    },
+    {
+      "id": "prepare-response",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1050, 300],
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "success",
+              "name": "success",
+              "value": "true",
+              "type": "boolean"
+            },
+            {
+              "id": "session_id",
+              "name": "session_id",
+              "value": "={{ $('Process Session Data').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "message_count",
+              "name": "message_count",
+              "value": "={{ $('Process Session Data').item.json.message_count }}",
+              "type": "number"
+            },
+            {
+              "id": "is_new",
+              "name": "is_new_session",
+              "value": "={{ $('Process Session Data').item.json.is_new_session }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": false
+      }
+    },
+    {
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1250, 300],
+      "parameters": {
+        "respondWith": "allIncomingItems"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Current Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Session": {
+      "main": [
+        [
+          {
+            "node": "Process Session Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Session Data": {
+      "main": [
+        [
+          {
+            "node": "Upsert Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Session": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
