@@ -73,9 +73,89 @@ SSH_PASSWORD=your_password          # Fallback: password authentication
 
 ### Target Format
 
-All commands use `user@host[:port]` format:
-- `root@192.168.1.50` - Default port 22
-- `admin@server.local:2222` - Custom port
+All commands accept either:
+- **Profile name**: `home`, `prod`, `staging` (configured in ssh.json)
+- **Direct target**: `user@host[:port]` format
+
+Examples:
+- `home` - Uses profile credentials
+- `root@192.168.1.50` - Direct connection, default port 22
+- `admin@server.local:2222` - Direct connection, custom port
+
+## Server Profiles
+
+Profiles allow saving connection details for frequently-used servers with different credentials.
+
+### Profile Management
+
+```bash
+# List all profiles
+./run tool/ssh_client.py profile list
+
+# Add a profile with SSH key
+./run tool/ssh_client.py profile add home \
+  --host 192.168.1.50 \
+  --user root \
+  --key ~/.ssh/home_rsa \
+  --description "Home server"
+
+# Add a profile with password (references env var in .env)
+./run tool/ssh_client.py profile add staging \
+  --host staging.example.com \
+  --user admin \
+  --port 2222 \
+  --password-env SSH_STAGING_PASSWORD \
+  --description "Staging environment"
+
+# Set default profile
+./run tool/ssh_client.py profile default home
+
+# Remove a profile
+./run tool/ssh_client.py profile remove old-server
+```
+
+### Using Profiles
+
+Use profile name instead of user@host:
+
+```bash
+# Execute command on profile
+./run tool/ssh_client.py exec home "df -h"
+
+# Upload to profile
+./run tool/ssh_client.py upload prod ./config.yaml /etc/app/config.yaml
+
+# Download from profile
+./run tool/ssh_client.py download staging /var/log/app.log ./logs/
+```
+
+### Configuration File
+
+Profiles are stored in `~/.config/cc-plugins/ssh.json`:
+
+```json
+{
+  "profiles": {
+    "home": {
+      "host": "192.168.1.50",
+      "user": "root",
+      "port": 22,
+      "key_path": "~/.ssh/home_rsa",
+      "description": "Home server"
+    },
+    "staging": {
+      "host": "staging.example.com",
+      "user": "admin",
+      "port": 2222,
+      "password_env": "SSH_STAGING_PASSWORD",
+      "description": "Staging environment"
+    }
+  },
+  "default_profile": "home"
+}
+```
+
+**Note**: `password_env` references an environment variable name from `.env`, not the actual password.
 
 ## Execution Tool
 

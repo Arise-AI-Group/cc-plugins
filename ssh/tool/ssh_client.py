@@ -33,6 +33,7 @@ except ImportError:
     sys.exit(1)
 
 from .config import get_api_key
+from .profiles import get_profile, list_profiles, add_profile, remove_profile, set_default_profile, get_ssh_config
 
 SSH_KEY_PATH = get_api_key("SSH_KEY_PATH")
 SSH_PASSWORD = get_api_key("SSH_PASSWORD")
@@ -75,12 +76,36 @@ class SSHClient:
         """
         self.key_path = key_path or SSH_KEY_PATH
         self.password = password or SSH_PASSWORD
+        # Note: credentials not required at init - profiles can provide them
 
-        if not self.key_path and not self.password:
+    def _resolve_target(self, target: str) -> tuple:
+        """
+        Resolve target - either profile name or user@host format.
+
+        Args:
+            target: Profile name or user@host[:port]
+
+        Returns:
+            Tuple of (target_string, key_path, password)
+        """
+        # Check if target is a profile name (no @ means profile)
+        if "@" not in target:
+            profile = get_profile(target)
+            if profile:
+                return (
+                    profile.to_target(),
+                    profile.key_path or self.key_path,
+                    profile.password or self.password,
+                )
+            # Not a profile and not user@host format
             raise ValueError(
-                "No SSH credentials configured. "
-                "Set SSH_KEY_PATH or SSH_PASSWORD in .env file."
+                f"Unknown profile: {target}. "
+                "Use 'profile list' to see available profiles, "
+                "or use user@host[:port] format."
             )
+
+        # Standard user@host format - use instance credentials
+        return target, self.key_path, self.password
 
     def _parse_target(self, target: str) -> Tuple[str, str, int]:
         """
@@ -114,25 +139,34 @@ class SSHClient:
         Establish SSH connection to target.
 
         Args:
-            target: Target in format "user@host[:port]"
+            target: Profile name or target in format "user@host[:port]"
 
         Returns:
             Connected paramiko.SSHClient
         """
-        user, host, port = self._parse_target(target)
+        # Resolve target (profile or direct)
+        resolved_target, key_path, password = self._resolve_target(target)
+        user, host, port = self._parse_target(resolved_target)
+
+        if not key_path and not password:
+            raise SSHAuthError(
+                f"No credentials for {target}. "
+                "Configure profile with --key or --password-env, "
+                "or set SSH_KEY_PATH/SSH_PASSWORD in .env."
+            )
 
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
             # Try key-based auth first
-            if self.key_path and os.path.exists(self.key_path):
+            if key_path and os.path.exists(os.path.expanduser(key_path)):
                 try:
                     client.connect(
                         hostname=host,
                         port=port,
                         username=user,
-                        key_filename=self.key_path,
+                        key_filename=os.path.expanduser(key_path),
                         timeout=30
                     )
                     return client
@@ -141,19 +175,19 @@ class SSHClient:
                     pass
 
             # Try password auth
-            if self.password:
+            if password:
                 client.connect(
                     hostname=host,
                     port=port,
                     username=user,
-                    password=self.password,
+                    password=password,
                     timeout=30
                 )
                 return client
 
             raise SSHAuthError(
                 f"Authentication failed for {user}@{host}. "
-                "Check SSH_KEY_PATH or SSH_PASSWORD."
+                "Check profile credentials or SSH_KEY_PATH/SSH_PASSWORD."
             )
 
         except paramiko.AuthenticationException as e:
@@ -322,6 +356,63 @@ def cmd_download(args):
     return 0
 
 
+def cmd_profile_list(args):
+    """List all configured profiles."""
+    config = get_ssh_config()
+    profiles = list_profiles()
+    default = config.get("default_profile")
+
+    if not profiles:
+        print("No profiles configured.")
+        print("Use 'profile add NAME --host HOST --user USER' to create one.")
+        return 0
+
+    print("SSH Profiles:")
+    print("-" * 60)
+    for name, profile in sorted(profiles.items()):
+        marker = " *" if name == default else ""
+        auth = "key" if profile.key_path else ("password" if profile.password else "none")
+        desc = f" - {profile.description}" if profile.description else ""
+        print(f"  {name}{marker}: {profile.to_target()} ({auth}){desc}")
+
+    if default:
+        print(f"\n* = default profile")
+    return 0
+
+
+def cmd_profile_add(args):
+    """Add or update a profile."""
+    add_profile(
+        name=args.name,
+        host=args.host,
+        user=args.user,
+        port=args.port,
+        key_path=args.key,
+        password_env=args.password_env,
+        description=args.description,
+    )
+    print(f"Profile '{args.name}' saved.")
+    return 0
+
+
+def cmd_profile_remove(args):
+    """Remove a profile."""
+    if remove_profile(args.name):
+        print(f"Profile '{args.name}' removed.")
+        return 0
+    print(f"Profile '{args.name}' not found.")
+    return 1
+
+
+def cmd_profile_default(args):
+    """Set default profile."""
+    if set_default_profile(args.name):
+        print(f"Default profile set to '{args.name}'.")
+        return 0
+    print(f"Profile '{args.name}' not found.")
+    return 1
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="SSH client for remote command execution and file transfer"
@@ -330,20 +421,45 @@ def main():
 
     # exec command
     exec_parser = subparsers.add_parser("exec", help="Execute command on remote server")
-    exec_parser.add_argument("target", help="Target: user@host[:port]")
+    exec_parser.add_argument("target", help="Target: profile name or user@host[:port]")
     exec_parser.add_argument("command", help="Command to execute")
 
     # upload command
     upload_parser = subparsers.add_parser("upload", help="Upload file to remote server")
-    upload_parser.add_argument("target", help="Target: user@host[:port]")
+    upload_parser.add_argument("target", help="Target: profile name or user@host[:port]")
     upload_parser.add_argument("local_path", help="Local file or directory path")
     upload_parser.add_argument("remote_path", help="Remote destination path")
 
     # download command
     download_parser = subparsers.add_parser("download", help="Download file from remote server")
-    download_parser.add_argument("target", help="Target: user@host[:port]")
+    download_parser.add_argument("target", help="Target: profile name or user@host[:port]")
     download_parser.add_argument("remote_path", help="Remote file or directory path")
     download_parser.add_argument("local_path", help="Local destination path")
+
+    # profile command
+    profile_parser = subparsers.add_parser("profile", help="Manage SSH profiles")
+    profile_subparsers = profile_parser.add_subparsers(dest="profile_action")
+
+    # profile list
+    profile_subparsers.add_parser("list", help="List all profiles")
+
+    # profile add
+    profile_add_parser = profile_subparsers.add_parser("add", help="Add or update a profile")
+    profile_add_parser.add_argument("name", help="Profile name")
+    profile_add_parser.add_argument("--host", required=True, help="Hostname or IP")
+    profile_add_parser.add_argument("--user", required=True, help="Username")
+    profile_add_parser.add_argument("--port", type=int, default=22, help="Port (default: 22)")
+    profile_add_parser.add_argument("--key", help="Path to SSH private key")
+    profile_add_parser.add_argument("--password-env", help="Env var name containing password")
+    profile_add_parser.add_argument("--description", help="Profile description")
+
+    # profile remove
+    profile_remove_parser = profile_subparsers.add_parser("remove", help="Remove a profile")
+    profile_remove_parser.add_argument("name", help="Profile name to remove")
+
+    # profile default
+    profile_default_parser = profile_subparsers.add_parser("default", help="Set default profile")
+    profile_default_parser.add_argument("name", help="Profile name to set as default")
 
     args = parser.parse_args()
 
@@ -358,6 +474,18 @@ def main():
             return cmd_upload(args)
         elif args.action == "download":
             return cmd_download(args)
+        elif args.action == "profile":
+            if not args.profile_action:
+                profile_parser.print_help()
+                return 0
+            if args.profile_action == "list":
+                return cmd_profile_list(args)
+            elif args.profile_action == "add":
+                return cmd_profile_add(args)
+            elif args.profile_action == "remove":
+                return cmd_profile_remove(args)
+            elif args.profile_action == "default":
+                return cmd_profile_default(args)
     except SSHAuthError as e:
         print(f"Authentication error: {e}", file=sys.stderr)
         return 1
