@@ -5,6 +5,76 @@ description: This skill should be used when the user asks to "deploy n8n workflo
 
 # n8n Workflow Management
 
+## Session Start: Instance Selection
+
+**FIRST ACTION** when this skill loads with multiple profiles configured:
+
+1. Run `./run tool/n8n_api.py profile list`
+2. If multiple profiles exist, ASK the user which instance to use:
+
+   > "I see you have multiple n8n instances configured:
+   > - **production**: Production instance
+   > - **staging**: Staging/test instance
+   >
+   > Which instance should I use for this session?"
+
+3. If user selects non-default, run `profile switch <name>` and inform them:
+   > "Switched to [name]. Note: MCP tools use the instance from when Claude Code started.
+   > If you need MCP tools (node discovery), restart Claude Code or use /clear."
+
+4. If only one profile (or none), proceed silently with default.
+
+## CRITICAL: Context Efficiency Guidelines
+
+> **WARNING**: MCP tools like `n8n_create_workflow` and `n8n_update_full_workflow`
+> pass full workflow JSON through context, consuming 10-50k tokens for complex workflows.
+>
+> **ALWAYS prefer file-based CLI operations.**
+
+### The Golden Rule
+
+1. **Export to file** (not `get_workflow` with full mode)
+2. **Edit file locally** (Use Read/Edit tools, not memory)
+3. **Deploy from file** (not `create_workflow` with JSON in context)
+4. **Use partial updates** for small changes
+
+### Quick Reference
+
+| Task | WRONG (High Context) | RIGHT (Low Context) |
+|------|---------------------|---------------------|
+| View workflow | `n8n_get_workflow` mode=full | `export` to file, then `Read` |
+| Create workflow | `n8n_create_workflow` | `Write` to file, then CLI `create` |
+| Update workflow | `n8n_update_full_workflow` | `export`, `Edit` file, CLI `update` |
+| Small change | `n8n_update_full_workflow` | `n8n_update_partial_workflow` |
+| Quick status | `n8n_get_workflow` mode=full | `n8n_get_workflow` mode=minimal |
+
+### When MCP Tools ARE Appropriate
+
+| Tool | Use Case | Context Cost |
+|------|----------|--------------|
+| `search_nodes` | Discovery | LOW |
+| `get_node` detail=minimal | Quick lookup | LOW |
+| `n8n_get_workflow` mode=minimal | Quick status | LOW (~100 tokens) |
+| `n8n_get_workflow` mode=structure | Topology check | LOW (~500 tokens) |
+| `n8n_update_partial_workflow` | Surgical changes | LOW (sends diff) |
+| `validate_workflow` | Pre-deploy check | MEDIUM |
+| `n8n_list_workflows` | Metadata only | LOW |
+| `n8n_executions` mode=preview | Execution list | LOW |
+| `n8n_executions` mode=summary | Basic details | LOW-MEDIUM |
+| `n8n_executions` mode=error | Debug failures | MEDIUM |
+| `n8n_executions` mode=full | Full node data | **VERY HIGH - AVOID** |
+
+### Execution History Guidelines
+
+Execution data can be extremely heavy (full node inputs/outputs).
+
+| Task | WRONG | RIGHT |
+|------|-------|-------|
+| List recent runs | `n8n_executions` mode=full | `n8n_executions` mode=preview |
+| Check if failed | `n8n_executions` mode=full | `n8n_executions` mode=error |
+| Debug specific run | CLI `execution <id> --full` | CLI `execution <id>` (summary) then export if needed |
+| Get full execution data | Pass through context | `execution-export` to file, read selectively |
+
 ## Two Tools - When to Use Each
 
 This plugin provides TWO integrated tools. Choose the right one:
@@ -105,7 +175,41 @@ Use for managing deployed workflows on an n8n instance:
 
 # Remove an instance
 ./run tool/n8n_api.py profile remove old-instance
+
+# Switch instance (sets default + shows restart instructions)
+./run tool/n8n_api.py profile switch staging
 ```
+
+## Instance Switching (IMPORTANT)
+
+### CLI vs MCP Instance Handling
+
+| Tool | When Profile is Read | How to Switch |
+|------|---------------------|---------------|
+| CLI commands | Per-command | `--profile` flag or `profile switch` |
+| MCP tools | At Claude Code startup | Restart Claude Code |
+
+### Switching Instances Mid-Session
+
+```bash
+# Switch CLI to different instance
+./run tool/n8n_api.py profile switch staging
+
+# CLI now uses staging, but MCP still uses previous instance!
+# To sync MCP: restart Claude Code or run /clear
+```
+
+### Best Practice
+
+Before starting work, confirm which instance you're using:
+```bash
+./run tool/n8n_api.py profile list
+```
+
+If you need to switch instances:
+1. Run `profile switch <name>`
+2. Restart Claude Code (or `/clear`) to sync MCP tools
+3. Verify with `profile list`
 
 ## CLI Commands Reference
 
@@ -115,16 +219,19 @@ Use for managing deployed workflows on an n8n instance:
 # List all workflows
 ./run tool/n8n_api.py list
 
-# Get workflow JSON (for inspection/debugging)
+# Get workflow JSON (for inspection/debugging) - CAUTION: large output
 ./run tool/n8n_api.py get <workflow_id>
 
-# Get workflow info (triggers, webhook URLs)
+# Get workflow info (triggers, webhook URLs) - lightweight
 ./run tool/n8n_api.py info <workflow_id>
+
+# Get workflow summary (node list, counts) - lightweight, context-efficient
+./run tool/n8n_api.py summary <workflow_id>
 
 # Deploy new workflow from local file
 ./run tool/n8n_api.py create workflows/my_workflow.json
 
-# Update existing workflow
+# Update existing workflow from local file
 ./run tool/n8n_api.py update <workflow_id> workflows/my_workflow.json
 
 # Activate/deactivate workflow
@@ -136,6 +243,15 @@ Use for managing deployed workflows on an n8n instance:
 
 # Export workflow to local file
 ./run tool/n8n_api.py export <workflow_id> workflows/exported.json
+
+# Compare local file to deployed workflow
+./run tool/n8n_api.py diff <workflow_id> local_file.json
+
+# Compare and export changes for review
+./run tool/n8n_api.py diff <workflow_id> local_file.json --output changes/
+
+# Validate local workflow JSON before deployment
+./run tool/n8n_api.py validate workflows/my_workflow.json
 
 # Delete workflow (with confirmation)
 ./run tool/n8n_api.py delete <workflow_id>
@@ -163,11 +279,14 @@ Output shows: execution ID, status (success/error/running), timestamps
 ### Get Execution Details
 
 ```bash
-# Summary view
+# Summary view (lightweight)
 ./run tool/n8n_api.py execution <execution_id>
 
-# Full data (includes all node inputs/outputs)
+# Full data in terminal (includes all node inputs/outputs) - CAUTION: large output
 ./run tool/n8n_api.py execution <execution_id> --full
+
+# Export full execution to file (context-efficient for debugging)
+./run tool/n8n_api.py execution-export <execution_id> debug/exec.json
 ```
 
 Output includes:

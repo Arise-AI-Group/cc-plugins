@@ -9,6 +9,8 @@ Supports multiple n8n instances via profiles.
 Usage (CLI):
     ./run tool/n8n_api.py [--profile <name>] list
     ./run tool/n8n_api.py [--profile <name>] get <workflow_id>
+    ./run tool/n8n_api.py [--profile <name>] info <workflow_id>
+    ./run tool/n8n_api.py [--profile <name>] summary <workflow_id>
     ./run tool/n8n_api.py [--profile <name>] create <json_file>
     ./run tool/n8n_api.py [--profile <name>] update <workflow_id> <json_file>
     ./run tool/n8n_api.py [--profile <name>] activate <workflow_id>
@@ -16,14 +18,17 @@ Usage (CLI):
     ./run tool/n8n_api.py [--profile <name>] execute <workflow_id> [input_json]
     ./run tool/n8n_api.py [--profile <name>] executions <workflow_id> [limit]
     ./run tool/n8n_api.py [--profile <name>] execution <execution_id> [--full]
+    ./run tool/n8n_api.py [--profile <name>] execution-export <execution_id> <output_file>
     ./run tool/n8n_api.py [--profile <name>] export <workflow_id> <output_file>
+    ./run tool/n8n_api.py [--profile <name>] diff <workflow_id> <local_file> [--output <dir>]
+    ./run tool/n8n_api.py [--profile <name>] validate <json_file>
     ./run tool/n8n_api.py [--profile <name>] delete <workflow_id>
-    ./run tool/n8n_api.py [--profile <name>] info <workflow_id>
 
 Profile Management:
     ./run tool/n8n_api.py profile list
     ./run tool/n8n_api.py profile add <name> --url <url> --api-key-env <ENV_VAR> [--description <desc>]
     ./run tool/n8n_api.py profile default <name>
+    ./run tool/n8n_api.py profile switch <name>
     ./run tool/n8n_api.py profile remove <name>
 
 IMPORTANT: The n8n public API does not support direct workflow execution.
@@ -275,6 +280,136 @@ class N8nClient:
 
     # --- Convenience Methods ---
 
+    def get_workflow_summary(self, workflow_id: str) -> dict:
+        """Get workflow structure summary without full node parameters."""
+        workflow = self.get_workflow(workflow_id)
+        nodes = workflow.get("nodes", [])
+        connections = workflow.get("connections", {})
+
+        return {
+            "id": workflow.get("id"),
+            "name": workflow.get("name"),
+            "active": workflow.get("active"),
+            "node_count": len(nodes),
+            "nodes": [{"name": n["name"], "type": n["type"]} for n in nodes],
+            "triggers": [n["name"] for n in nodes if "trigger" in n.get("type", "").lower()],
+            "connection_count": sum(len(v) for v in connections.values()),
+        }
+
+    def diff_workflow(self, workflow_id: str, local_path: str, output_dir: str = None) -> dict:
+        """Compare local workflow file to deployed version.
+
+        If output_dir provided, exports change details to files for Claude to read.
+        """
+        deployed = self.get_workflow(workflow_id)
+        with open(local_path, 'r') as f:
+            local = json.load(f)
+
+        deployed_nodes = {n["name"]: n for n in deployed.get("nodes", [])}
+        local_nodes = {n["name"]: n for n in local.get("nodes", [])}
+
+        added = set(local_nodes) - set(deployed_nodes)
+        removed = set(deployed_nodes) - set(local_nodes)
+        common = set(local_nodes) & set(deployed_nodes)
+
+        result = {
+            "added": [{"name": n, "type": local_nodes[n]["type"]} for n in added],
+            "removed": [{"name": n, "type": deployed_nodes[n]["type"]} for n in removed],
+            "common": list(common),
+            "summary": f"{len(added)} added, {len(removed)} removed, {len(common)} common"
+        }
+
+        # If output_dir specified, export details for Claude to read
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Export added nodes (full JSON - Claude needs to see what's new)
+            if added:
+                with open(os.path.join(output_dir, "added.json"), "w") as f:
+                    json.dump([local_nodes[n] for n in added], f, indent=2)
+
+            # Export removed node names only
+            if removed:
+                with open(os.path.join(output_dir, "removed.txt"), "w") as f:
+                    f.write("\n".join(removed))
+
+            # Export common node names (Claude can selectively read from original files)
+            with open(os.path.join(output_dir, "common.txt"), "w") as f:
+                f.write("\n".join(common))
+
+            result["output_dir"] = output_dir
+            result["files"] = ["added.json", "removed.txt", "common.txt"]
+
+        return result
+
+    def export_execution(self, execution_id: str, output_path: str, include_data: bool = True) -> str:
+        """Export execution details to a local JSON file."""
+        execution = self.get_execution(execution_id, include_data=include_data)
+
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        with open(output_path, 'w') as f:
+            json.dump(execution, f, indent=2)
+
+        return output_path
+
+    @staticmethod
+    def validate_workflow_file(json_path: str) -> dict:
+        """Validate a local workflow JSON file structure.
+
+        Checks for required fields and basic structure without requiring API.
+        """
+        errors = []
+        warnings = []
+
+        try:
+            with open(json_path, 'r') as f:
+                workflow = json.load(f)
+        except json.JSONDecodeError as e:
+            return {"valid": False, "errors": [f"Invalid JSON: {e}"], "warnings": []}
+        except FileNotFoundError:
+            return {"valid": False, "errors": [f"File not found: {json_path}"], "warnings": []}
+
+        # Check required top-level fields
+        if "nodes" not in workflow:
+            errors.append("Missing required field: 'nodes'")
+        elif not isinstance(workflow["nodes"], list):
+            errors.append("'nodes' must be an array")
+
+        if "connections" not in workflow:
+            warnings.append("Missing 'connections' field (will be empty)")
+
+        # Validate nodes
+        nodes = workflow.get("nodes", [])
+        node_names = set()
+        for i, node in enumerate(nodes):
+            if not isinstance(node, dict):
+                errors.append(f"Node {i}: must be an object")
+                continue
+
+            if "name" not in node:
+                errors.append(f"Node {i}: missing 'name'")
+            else:
+                if node["name"] in node_names:
+                    errors.append(f"Duplicate node name: '{node['name']}'")
+                node_names.add(node["name"])
+
+            if "type" not in node:
+                errors.append(f"Node {i}: missing 'type'")
+
+            if "parameters" not in node:
+                warnings.append(f"Node '{node.get('name', i)}': missing 'parameters' (will use defaults)")
+
+            if "position" not in node:
+                warnings.append(f"Node '{node.get('name', i)}': missing 'position' (will use default)")
+
+        return {
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "warnings": warnings,
+            "node_count": len(nodes),
+            "node_names": list(node_names)
+        }
+
     def deploy_from_file(self, json_path: str, workflow_id: str = None) -> dict:
         """
         Deploy a workflow from a local JSON file.
@@ -419,6 +554,27 @@ def handle_profile_command(args: List[str]) -> None:
         name = args[1]
         if profiles.remove_profile(name):
             print(f"Removed profile: {name}")
+        else:
+            print(f"Error: Profile '{name}' not found")
+            sys.exit(1)
+
+    elif subcommand == "switch":
+        if len(args) < 2:
+            print("Usage: profile switch <name>")
+            sys.exit(1)
+
+        name = args[1]
+        if profiles.set_default_profile(name):
+            profile = profiles.get_profile(name)
+            print(f"Switched to profile: {name}")
+            print(f"  URL: {profile.api_url}")
+            print()
+            print("NOTE: CLI commands will now use this profile.")
+            print("      MCP tools still use the previous instance until you restart Claude Code.")
+            print()
+            print("To restart MCP connection:")
+            print("  1. Run /clear in Claude Code")
+            print("  2. Or restart Claude Code entirely")
         else:
             print(f"Error: Profile '{name}' not found")
             sys.exit(1)
@@ -608,6 +764,87 @@ def main():
                     if t.get('webhook_url'):
                         print(f"    Production: {t['webhook_url']}")
                         print(f"    Test: {t['test_url']}")
+
+        elif command == "summary":
+            if len(args) < 2:
+                print("Usage: ./run tool/n8n_api.py summary <workflow_id>")
+                sys.exit(1)
+            workflow_id = args[1]
+            summary = client.get_workflow_summary(workflow_id)
+            print(f"\nWorkflow: {summary['name']}")
+            print(f"ID: {summary['id']}")
+            print(f"Active: {summary['active']}")
+            print(f"Nodes: {summary['node_count']}")
+            print(f"Connections: {summary['connection_count']}")
+            if summary['triggers']:
+                print(f"Triggers: {', '.join(summary['triggers'])}")
+            print("\nNode list:")
+            for node in summary['nodes']:
+                print(f"  - {node['name']} ({node['type']})")
+
+        elif command == "diff":
+            if len(args) < 3:
+                print("Usage: ./run tool/n8n_api.py diff <workflow_id> <local_file> [--output <dir>]")
+                sys.exit(1)
+            workflow_id = args[1]
+            local_file = args[2]
+            output_dir = None
+
+            # Parse --output flag
+            if len(args) > 3 and args[3] == "--output":
+                if len(args) > 4:
+                    output_dir = args[4]
+                else:
+                    print("Error: --output requires a directory path")
+                    sys.exit(1)
+
+            result = client.diff_workflow(workflow_id, local_file, output_dir)
+            print(f"\nDiff: {result['summary']}")
+            if result['added']:
+                print("\nAdded nodes:")
+                for node in result['added']:
+                    print(f"  + {node['name']} ({node['type']})")
+            if result['removed']:
+                print("\nRemoved nodes:")
+                for node in result['removed']:
+                    print(f"  - {node['name']} ({node['type']})")
+            if result.get('output_dir'):
+                print(f"\nChange details exported to: {result['output_dir']}")
+                print(f"Files: {', '.join(result['files'])}")
+
+        elif command == "execution-export":
+            if len(args) < 3:
+                print("Usage: ./run tool/n8n_api.py execution-export <execution_id> <output_file>")
+                sys.exit(1)
+            execution_id = args[1]
+            output_file = args[2]
+            path = client.export_execution(execution_id, output_file)
+            print(f"Exported execution {execution_id} to {path}")
+
+        elif command == "validate":
+            if len(args) < 2:
+                print("Usage: ./run tool/n8n_api.py validate <json_file>")
+                sys.exit(1)
+            json_file = args[1]
+            result = N8nClient.validate_workflow_file(json_file)
+            print(f"\nValidating: {json_file}")
+            print(f"Nodes found: {result.get('node_count', 0)}")
+
+            if result['errors']:
+                print("\nErrors:")
+                for err in result['errors']:
+                    print(f"  [ERROR] {err}")
+
+            if result['warnings']:
+                print("\nWarnings:")
+                for warn in result['warnings']:
+                    print(f"  [WARN] {warn}")
+
+            if result['valid']:
+                print("\n[OK] Workflow structure is valid")
+            else:
+                print("\n[FAIL] Workflow has validation errors")
+                sys.exit(1)
 
         else:
             print(f"Unknown command: {command}")
