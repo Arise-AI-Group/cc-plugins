@@ -16,36 +16,37 @@ description: This skill should be used when the user asks to "deploy n8n workflo
    > "Switched to [name]. Note: MCP tools use the instance from when Claude Code started. Restart or /clear to sync."
 4. If only one profile, proceed silently with default.
 
-## Context Efficiency Guidelines
+## Context Efficiency
 
-> **WARNING**: MCP tools pass full workflow JSON through context, consuming 10-50k tokens.
-> **ALWAYS prefer file-based CLI operations.**
+Full workflow MCP tools are **disabled** to prevent context bloat. Use CLI file-based operations instead.
 
-### The Golden Rule
+### Workflow Operations (CLI Only)
 
-1. **Export to file** (not `get_workflow` with full mode)
-2. **Edit file locally** (Use Read/Edit tools)
-3. **Deploy from file** (not `create_workflow` with JSON in context)
-4. **Use partial updates** for small changes
+| Operation | CLI Command |
+|-----------|-------------|
+| Get workflow | `export <id> <file>` → then `Read` file |
+| Create workflow | `Write` file → then `create <file>` |
+| Update workflow | `export` → `Edit` → `update <id> <file>` |
+| Get template | `template-get <id> <file>` → then `Read` file |
 
-### Quick Reference
-
-| Task | Wrong (High Context) | Right (Low Context) |
-|------|---------------------|---------------------|
-| View workflow | `n8n_get_workflow` mode=full | CLI `export` to file, then `Read` |
-| Create workflow | `n8n_create_workflow` | `Write` to file, then CLI `create` |
-| Update workflow | `n8n_update_full_workflow` | CLI `export`, `Edit` file, CLI `update` |
-| Small change | `n8n_update_full_workflow` | `n8n_update_partial_workflow` |
-
-### MCP Tools Context Cost
+### MCP Tools (Available)
 
 | Tool | Use Case | Context Cost |
 |------|----------|--------------|
 | `search_nodes` | Node discovery | LOW |
 | `get_node` detail=standard | Quick lookup | LOW |
+| `n8n_list_workflows` | List workflow metadata | LOW |
 | `n8n_update_partial_workflow` | Surgical changes | LOW |
-| `validate_workflow` | Pre-deploy check | MEDIUM |
-| `n8n_executions` mode=full | Full node data | **VERY HIGH - AVOID** |
+| `n8n_validate_workflow` | Validate deployed workflow | LOW |
+| `n8n_deploy_template` | Deploy from n8n.io | MEDIUM |
+| `n8n_executions` | Execution history | LOW-MEDIUM |
+
+### MCP Tools (Disabled)
+
+These tools are disabled to enforce CLI usage:
+- `n8n_create_workflow` → use CLI `create`
+- `n8n_update_full_workflow` → use CLI `update`
+- `n8n_get_workflow` → use CLI `export`
 
 ## Two Integrated Tools
 
@@ -121,6 +122,13 @@ Use for managing deployed workflows:
 ./run tool/n8n_api.py execution <exec_id>                    # Summary view
 ./run tool/n8n_api.py execution <exec_id> --full             # Full details
 ./run tool/n8n_api.py execution-export <exec_id> debug.json  # Export to file
+```
+
+### Template Operations (from n8n.io)
+
+```bash
+./run tool/n8n_api.py template-get <id> <output_file>        # Download template to file
+./run tool/n8n_api.py template-info <id>                     # View template metadata
 ```
 
 ## Expert Knowledge References

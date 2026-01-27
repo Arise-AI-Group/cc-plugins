@@ -81,5 +81,12 @@ except:
 # Resolve credentials
 resolve_credentials
 
+# Disable full workflow tools - use CLI instead for context efficiency
+# These tools pass 10-50k tokens through context. Use CLI alternatives:
+#   n8n_create_workflow -> ./run tool/n8n_api.py create <file.json>
+#   n8n_update_full_workflow -> ./run tool/n8n_api.py update <id> <file.json>
+#   n8n_get_workflow -> ./run tool/n8n_api.py export <id> <file>
+export DISABLED_TOOLS="n8n_create_workflow,n8n_update_full_workflow,n8n_get_workflow"
+
 # Run n8n-mcp
 exec npx -y n8n-mcp

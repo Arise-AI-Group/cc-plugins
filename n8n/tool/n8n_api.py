@@ -24,6 +24,10 @@ Usage (CLI):
     ./run tool/n8n_api.py [--profile <name>] validate <json_file>
     ./run tool/n8n_api.py [--profile <name>] delete <workflow_id>
 
+Template Operations (no n8n instance required - fetches from n8n.io):
+    ./run tool/n8n_api.py template-get <template_id> <output_file>
+    ./run tool/n8n_api.py template-info <template_id>
+
 Profile Management:
     ./run tool/n8n_api.py profile list
     ./run tool/n8n_api.py profile add <name> --url <url> --api-key-env <ENV_VAR> [--description <desc>]
@@ -438,6 +442,75 @@ class N8nClient:
 
         return output_path
 
+    # --- Template Operations (n8n.io) ---
+
+    @staticmethod
+    def fetch_template_data(template_id: int) -> dict:
+        """Fetch raw template data from n8n.io API.
+
+        Returns the full API response with metadata and workflow.
+        Structure: {"workflow": {"id", "name", "description", "workflow": {...nodes...}}}
+        """
+        url = f"https://api.n8n.io/api/templates/workflows/{template_id}"
+        try:
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("workflow", data)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                raise Exception(f"Template {template_id} not found on n8n.io")
+            raise Exception(f"Failed to fetch template: {e}")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Request failed: {e}")
+
+    @staticmethod
+    def export_template(template_id: int, output_path: str) -> dict:
+        """Download a template from n8n.io to a local file.
+
+        Returns template metadata (name, description, etc.) for display.
+        The workflow JSON (nodes, connections) is saved to output_path.
+        """
+        template_data = N8nClient.fetch_template_data(template_id)
+
+        # The actual workflow JSON is nested under "workflow"
+        workflow = template_data.get("workflow", {})
+
+        # Add template name to workflow if not present
+        if "name" not in workflow and template_data.get("name"):
+            workflow["name"] = template_data.get("name")
+
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        with open(output_path, 'w') as f:
+            json.dump(workflow, f, indent=2)
+
+        return {
+            "id": template_data.get("id"),
+            "name": template_data.get("name"),
+            "description": (template_data.get("description") or "")[:200],
+            "node_count": len(workflow.get("nodes", [])),
+            "output_path": output_path
+        }
+
+    @staticmethod
+    def get_template_info(template_id: int) -> dict:
+        """Get template metadata without downloading the full workflow."""
+        template_data = N8nClient.fetch_template_data(template_id)
+
+        # The actual workflow JSON is nested under "workflow"
+        workflow = template_data.get("workflow", {})
+        nodes = workflow.get("nodes", [])
+
+        return {
+            "id": template_data.get("id"),
+            "name": template_data.get("name"),
+            "description": template_data.get("description") or "",
+            "created_at": template_data.get("createdAt"),
+            "node_count": len(nodes),
+            "nodes": [{"name": n.get("name"), "type": n.get("type")} for n in nodes],
+            "url": f"https://n8n.io/workflows/{template_id}"
+        }
+
 
 # --- CLI Interface ---
 
@@ -609,6 +682,59 @@ def main():
     # Handle profile command separately (no client needed)
     if command == "profile":
         handle_profile_command(args[1:])
+        return
+
+    # Handle template commands (no n8n instance needed - fetches from n8n.io)
+    if command == "template-get":
+        if len(args) < 3:
+            print("Usage: ./run tool/n8n_api.py template-get <template_id> <output_file>")
+            print("\nDownloads a template from n8n.io to a local file.")
+            print("Example: ./run tool/n8n_api.py template-get 1234 workflows/my-template.json")
+            sys.exit(1)
+        try:
+            template_id = int(args[1])
+        except ValueError:
+            print(f"Error: template_id must be a number, got '{args[1]}'")
+            sys.exit(1)
+        output_file = args[2]
+        try:
+            result = N8nClient.export_template(template_id, output_file)
+            print(f"Downloaded template: {result['name']}")
+            print(f"  ID: {result['id']}")
+            print(f"  Nodes: {result['node_count']}")
+            print(f"  Saved to: {result['output_path']}")
+            if result['description']:
+                print(f"  Description: {result['description']}")
+        except Exception as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+        return
+
+    if command == "template-info":
+        if len(args) < 2:
+            print("Usage: ./run tool/n8n_api.py template-info <template_id>")
+            print("\nShows metadata about a template from n8n.io without downloading.")
+            sys.exit(1)
+        try:
+            template_id = int(args[1])
+        except ValueError:
+            print(f"Error: template_id must be a number, got '{args[1]}'")
+            sys.exit(1)
+        try:
+            info = N8nClient.get_template_info(template_id)
+            print(f"\nTemplate: {info['name']}")
+            print(f"ID: {info['id']}")
+            print(f"URL: {info['url']}")
+            print(f"Nodes: {info['node_count']}")
+            if info['description']:
+                print(f"\nDescription:\n  {info['description'][:500]}")
+            print("\nNode list:")
+            for node in info['nodes']:
+                print(f"  - {node['name']} ({node['type']})")
+            print(f"\nTo download: ./run tool/n8n_api.py template-get {template_id} workflows/template.json")
+        except Exception as e:
+            print(f"Error: {e}")
+            sys.exit(1)
         return
 
     # Create client with profile

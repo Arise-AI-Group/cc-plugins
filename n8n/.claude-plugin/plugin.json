@@ -1,7 +1,7 @@
 {
   "name": "n8n",
   "description": "AI-assisted n8n workflow development and management - discover nodes via MCP, deploy/execute/monitor via CLI, multi-instance support, with expert knowledge on expressions, patterns, validation, and code nodes",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "author": {
     "name": "Arise Group"
   }
