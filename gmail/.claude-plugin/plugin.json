@@ -1,7 +1,7 @@
 {
   "name": "gmail",
   "description": "Gmail and Google Tasks management - read emails, send messages, manage labels, drafts, and tasks with full email lifecycle support",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Arise Group"
   }
