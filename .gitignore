@@ -8,6 +8,14 @@
 SECRETS.md
 */SECRETS.md
 
+# Google OAuth credentials
+credentials.json
+*/credentials.json
+token.json
+*/token.json
+service_account.json
+*/service_account.json
+
 # Python
 __pycache__/
 *.pyc

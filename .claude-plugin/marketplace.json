@@ -101,6 +101,11 @@
       "name": "arise-bmad-extension",
       "source": "./arise-bmad-extension",
       "description": "BMAD extension for AsyncAPI/CloudEvents-based modular architecture with n8n integration"
+    },
+    {
+      "name": "gmail",
+      "source": "./gmail",
+      "description": "Gmail and Google Tasks management - read emails, send messages, manage labels, drafts, and tasks"
     }
   ]
 }
