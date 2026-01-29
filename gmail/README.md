@@ -27,9 +27,12 @@ This plugin uses OAuth 2.0 for authentication. No environment variables are requ
 2. Create a project and enable Gmail API and Tasks API
 3. Create OAuth 2.0 credentials (Desktop app)
 4. Download the JSON file and save as `credentials.json` in the plugin directory
-5. Authorize the app:
-   - **Desktop**: Run any command - browser opens automatically
-   - **Headless server**: Run `authenticate.py` via SSH, visit the printed URL, paste code back
+5. **Run OAuth in terminal** (recommended for security):
+   ```bash
+   cd /path/to/gmail
+   ./.venv/bin/python3 authenticate.py
+   ```
+   Visit the printed URL, authorize, then paste the code back.
 
 See [skills/gmail/references/oauth-setup.md](skills/gmail/references/oauth-setup.md) for detailed instructions.
 

@@ -56,29 +56,21 @@ This guide explains how to set up Google OAuth credentials for the Gmail plugin.
 
 ## Step 5: First Authorization
 
-### On Desktop (with browser)
-1. Run any Gmail command:
-   ```bash
-   ./run tool/gmail_api.py labels list
-   ```
-2. A browser window will open
-3. Sign in with your Google account
-4. Review permissions and click "Allow"
-5. A `token.json` file is created automatically
+**Always run OAuth in the terminal** - this is the recommended approach for security. It gives you full visibility into the authorization process and prevents automatic browser redirects.
 
-### On Headless Server (SSH)
-1. SSH into the server and run the authenticate script interactively:
+1. Run the authenticate script in your terminal:
    ```bash
    cd /path/to/gmail
    ./.venv/bin/python3 authenticate.py
    ```
-2. You'll see a URL printed - copy and open it in your local browser
-3. Sign in and authorize the app
-4. Copy the authorization code shown after approval
-5. Paste the code back into the terminal
-6. A `token.json` file is created automatically
+2. You'll see a URL printed - copy and open it in your browser
+3. Sign in with your Google account
+4. Review permissions and click "Allow"
+5. Copy the authorization code shown after approval
+6. Paste the code back into the terminal
+7. A `token.json` file is created automatically
 
-**Alternative:** You can also transfer an existing `token.json` from another machine where you've already authorized.
+**Alternative:** You can transfer an existing `token.json` from another machine where you've already authorized.
 
 ## Token Management
 

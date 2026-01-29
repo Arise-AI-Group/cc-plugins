@@ -198,12 +198,18 @@ Common operators for the `--query` parameter:
 
 ## OAuth Credentials
 
-On first run, you'll need to authorize the app:
-1. Ensure `credentials.json` exists in the plugin directory
-2. Run any command to trigger authorization
-3. After authorization, `token.json` is saved for future use
+On first run, you'll need to authorize the app. **Always run OAuth in the terminal** for security:
 
-**On headless servers**: Run `authenticate.py` interactively via SSH - it will print a URL to visit and prompt for the authorization code.
+```bash
+cd /path/to/gmail
+./.venv/bin/python3 authenticate.py
+```
+
+1. Ensure `credentials.json` exists in the plugin directory
+2. Run `authenticate.py` in terminal
+3. Visit the printed URL in your browser
+4. Authorize and copy the code back to terminal
+5. `token.json` is saved for future use
 
 See [references/oauth-setup.md](references/oauth-setup.md) for detailed setup instructions.
 
