@@ -14,8 +14,6 @@ Usage:
 
 import argparse
 import json
-import shutil
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -24,14 +22,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 
-def check_pandoc() -> bool:
-    """Check if pandoc is available."""
-    return shutil.which('pandoc') is not None
-
-
 def extract_text(docx_path: str, output_path: str = None,
                  format: str = 'plain', track_changes: str = 'accept') -> dict:
-    """Extract text from a DOCX file using pandoc.
+    """Extract text from a DOCX file using python-docx.
 
     Args:
         docx_path: Path to DOCX file
@@ -42,37 +35,39 @@ def extract_text(docx_path: str, output_path: str = None,
     Returns:
         Dict with extracted text or file path
     """
-    if not check_pandoc():
-        raise RuntimeError("pandoc is not installed. Install it with: apt install pandoc")
+    from docx import Document
 
     docx_path = Path(docx_path)
     if not docx_path.exists():
         raise FileNotFoundError(f"DOCX file not found: {docx_path}")
 
-    # Build pandoc command
-    cmd = ['pandoc', str(docx_path)]
+    # For formats other than plain, use mammoth for better conversion
+    if format in ('markdown', 'md', 'html'):
+        import mammoth
 
-    # Output format
-    format_map = {
-        'plain': 'plain',
-        'markdown': 'markdown',
-        'md': 'markdown',
-        'html': 'html',
-    }
-    pandoc_format = format_map.get(format, 'plain')
-    cmd.extend(['-t', pandoc_format])
+        with open(docx_path, 'rb') as f:
+            if format == 'html':
+                result = mammoth.convert_to_html(f)
+            else:
+                result = mammoth.convert_to_markdown(f)
+            text = result.value
+    else:
+        # Plain text extraction with python-docx
+        doc = Document(str(docx_path))
 
-    # Track changes handling
-    if track_changes in ('accept', 'reject', 'all'):
-        cmd.extend(['--track-changes', track_changes])
+        paragraphs = []
+        for para in doc.paragraphs:
+            paragraphs.append(para.text)
 
-    # Run pandoc
-    result = subprocess.run(cmd, capture_output=True, text=True)
+        # Also extract text from tables
+        for table in doc.tables:
+            for row in table.rows:
+                row_text = []
+                for cell in row.cells:
+                    row_text.append(cell.text)
+                paragraphs.append('\t'.join(row_text))
 
-    if result.returncode != 0:
-        raise RuntimeError(f"pandoc failed: {result.stderr}")
-
-    text = result.stdout
+        text = '\n'.join(paragraphs)
 
     # Write to file if output path specified
     if output_path:
@@ -139,7 +134,7 @@ def accept_changes(input_path: str, output_path: str) -> dict:
 
 
 def convert_to_pdf(docx_path: str, output_path: str = None) -> dict:
-    """Convert DOCX to PDF using pandoc.
+    """Convert DOCX to PDF using mammoth + weasyprint.
 
     Args:
         docx_path: Path to DOCX file
@@ -148,8 +143,8 @@ def convert_to_pdf(docx_path: str, output_path: str = None) -> dict:
     Returns:
         Dict with operation results
     """
-    if not check_pandoc():
-        raise RuntimeError("pandoc is not installed. Install it with: apt install pandoc")
+    import mammoth
+    from weasyprint import HTML, CSS
 
     docx_path = Path(docx_path)
     if not docx_path.exists():
@@ -161,24 +156,44 @@ def convert_to_pdf(docx_path: str, output_path: str = None) -> dict:
     else:
         output_path = Path(output_path)
 
-    # Build pandoc command
-    cmd = [
-        'pandoc',
-        str(docx_path),
-        '-o', str(output_path),
-        '--pdf-engine=weasyprint',  # Use weasyprint which is already a dependency
-    ]
+    # Convert DOCX to HTML with mammoth
+    with open(docx_path, 'rb') as f:
+        result = mammoth.convert_to_html(f)
+        html_content = result.value
 
-    # Run pandoc
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    # Wrap in basic HTML structure with styling
+    full_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            max-width: 7in;
+            margin: 0.75in auto;
+            color: #333;
+        }}
+        h1 {{ font-size: 18pt; margin-top: 24pt; margin-bottom: 12pt; }}
+        h2 {{ font-size: 14pt; margin-top: 18pt; margin-bottom: 10pt; }}
+        h3 {{ font-size: 12pt; margin-top: 14pt; margin-bottom: 8pt; }}
+        p {{ margin: 0 0 10pt 0; }}
+        table {{ border-collapse: collapse; width: 100%; margin: 12pt 0; }}
+        th, td {{ border: 1px solid #ddd; padding: 8pt; text-align: left; }}
+        th {{ background-color: #f5f5f5; font-weight: bold; }}
+        ul, ol {{ margin: 0 0 10pt 0; padding-left: 20pt; }}
+        li {{ margin-bottom: 4pt; }}
+        img {{ max-width: 100%; height: auto; }}
+    </style>
+</head>
+<body>
+{html_content}
+</body>
+</html>"""
 
-    if result.returncode != 0:
-        # Try without specifying engine (let pandoc choose)
-        cmd = ['pandoc', str(docx_path), '-o', str(output_path)]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode != 0:
-            raise RuntimeError(f"pandoc failed: {result.stderr}")
+    # Convert to PDF with WeasyPrint
+    HTML(string=full_html).write_pdf(str(output_path))
 
     return {
         'status': 'success',

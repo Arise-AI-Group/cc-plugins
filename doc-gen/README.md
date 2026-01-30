@@ -6,7 +6,7 @@ Comprehensive document generation, editing, and processing plugin for Claude Cod
 
 ### Document Generation
 - **HTML to PDF** - High-quality PDF generation with WeasyPrint
-- **Markdown to DOCX** - Word document creation with Pandoc
+- **Markdown to DOCX** - Word document creation with python-docx
 - **Jinja2 Templates** - Variable substitution for dynamic documents
 - **Pre-built Stylesheets** - Professional styles for quotes, reports, invoices
 
@@ -35,16 +35,6 @@ Comprehensive document generation, editing, and processing plugin for Claude Cod
 ## Prerequisites
 
 ### System Dependencies
-
-**Pandoc** (required for DOCX conversion):
-
-```bash
-# macOS
-brew install pandoc
-
-# Ubuntu/Debian
-sudo apt install pandoc
-```
 
 **WeasyPrint dependencies** (for HTML to PDF):
 

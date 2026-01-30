@@ -235,8 +235,12 @@ For detailed procedures and XML patterns:
 
 ## Dependencies
 
-- **pandoc** - Markdown/DOCX conversion (external)
+All dependencies are pure Python (pip-installable, no external binaries):
+
 - **weasyprint** - HTML to PDF rendering
+- **python-docx** - DOCX creation and parsing
+- **mammoth** - DOCX to HTML conversion
+- **mistune** - Markdown parsing
 - **lxml** - XML processing for DOCX editing
 - **pypdf** - PDF manipulation
 - **pdfplumber** - PDF text/table extraction

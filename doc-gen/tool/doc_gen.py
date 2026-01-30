@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Document generation CLI using WeasyPrint and Pandoc.
+"""Document generation CLI using WeasyPrint and pure Python libraries.
 
 Converts HTML/Markdown to PDF and DOCX with Jinja2 templating support.
 
@@ -13,11 +13,11 @@ CLI Usage:
     ./run tool/doc_gen.py pdf template.html -o output.pdf --var client="Acme Corp"
     ./run tool/doc_gen.py pdf template.html -o output.pdf --vars data.json
 
-    # Markdown to DOCX (Pandoc)
+    # Markdown to DOCX
     ./run tool/doc_gen.py docx input.md -o output.docx
 
-    # Markdown to PDF (Pandoc)
-    ./run tool/doc_gen.py pdf input.md -o output.pdf --engine pandoc
+    # Markdown to PDF
+    ./run tool/doc_gen.py pdf input.md -o output.pdf
 
 Module Usage:
     from tool.doc_gen import DocGenerator
@@ -29,8 +29,7 @@ Module Usage:
 
 import argparse
 import json
-import os
-import subprocess
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -74,7 +73,7 @@ def get_templates_dir() -> Path:
 
 
 class DocGenerator:
-    """Document generator using WeasyPrint and Pandoc."""
+    """Document generator using WeasyPrint and pure Python libraries."""
 
     def __init__(self):
         self.styles_dir = get_styles_dir()
@@ -87,23 +86,6 @@ class DocGenerator:
         except ImportError:
             raise DependencyError(
                 "WeasyPrint not installed. Run: pip install weasyprint"
-            )
-
-    def _check_pandoc(self) -> None:
-        """Check if Pandoc is available."""
-        try:
-            result = subprocess.run(
-                ["pandoc", "--version"],
-                capture_output=True,
-                text=True
-            )
-            if result.returncode != 0:
-                raise DependencyError("Pandoc not working properly")
-        except FileNotFoundError:
-            raise DependencyError(
-                "Pandoc not installed. Install with:\n"
-                "  macOS:  brew install pandoc\n"
-                "  Ubuntu: sudo apt install pandoc"
             )
 
     def _render_template(
@@ -219,19 +201,23 @@ class DocGenerator:
         self,
         input_path: str | Path,
         output_path: str | Path,
-        variables: dict[str, Any] | None = None
+        variables: dict[str, Any] | None = None,
+        style: str | None = None
     ) -> Path:
-        """Convert Markdown to PDF using Pandoc.
+        """Convert Markdown to PDF using mistune + WeasyPrint.
 
         Args:
             input_path: Path to input Markdown file
             output_path: Path for output PDF file
             variables: Optional Jinja2 template variables
+            style: Optional built-in style name
 
         Returns:
             Path to the created PDF file
         """
-        self._check_pandoc()
+        self._check_weasyprint()
+        import mistune
+        from weasyprint import HTML, CSS
 
         input_path = Path(input_path)
         output_path = Path(output_path)
@@ -246,43 +232,60 @@ class DocGenerator:
                 content, variables, input_path.parent
             )
 
-        # Write to temp file if template was rendered
-        if variables:
-            import tempfile
-            with tempfile.NamedTemporaryFile(
-                mode='w', suffix='.md', delete=False
-            ) as f:
-                f.write(content)
-                temp_input = f.name
-        else:
-            temp_input = str(input_path)
+        # Convert Markdown to HTML
+        html_content = mistune.html(content)
 
-        try:
-            result = subprocess.run(
-                [
-                    "pandoc",
-                    temp_input,
-                    "-o", str(output_path),
-                    "--pdf-engine=xelatex"
-                ],
-                capture_output=True,
-                text=True
-            )
+        # Wrap in full HTML structure
+        full_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            max-width: 7in;
+            margin: 0.75in auto;
+            color: #333;
+        }}
+        h1 {{ font-size: 24pt; margin-top: 0; margin-bottom: 16pt; font-weight: 600; }}
+        h2 {{ font-size: 18pt; margin-top: 24pt; margin-bottom: 12pt; font-weight: 600; }}
+        h3 {{ font-size: 14pt; margin-top: 20pt; margin-bottom: 10pt; font-weight: 600; }}
+        h4, h5, h6 {{ font-size: 12pt; margin-top: 16pt; margin-bottom: 8pt; font-weight: 600; }}
+        p {{ margin: 0 0 12pt 0; }}
+        pre {{ background: #f5f5f5; padding: 12pt; border-radius: 4pt; overflow-x: auto; }}
+        code {{ font-family: "SF Mono", Monaco, monospace; font-size: 10pt; }}
+        pre code {{ background: none; }}
+        code:not(pre code) {{ background: #f0f0f0; padding: 2pt 4pt; border-radius: 3pt; }}
+        blockquote {{ margin: 12pt 0; padding-left: 16pt; border-left: 3pt solid #ddd; color: #666; }}
+        table {{ border-collapse: collapse; width: 100%; margin: 16pt 0; }}
+        th, td {{ border: 1px solid #ddd; padding: 8pt 12pt; text-align: left; }}
+        th {{ background: #f5f5f5; font-weight: 600; }}
+        ul, ol {{ margin: 0 0 12pt 0; padding-left: 24pt; }}
+        li {{ margin-bottom: 4pt; }}
+        hr {{ border: none; border-top: 1px solid #ddd; margin: 24pt 0; }}
+        a {{ color: #0066cc; text-decoration: none; }}
+        img {{ max-width: 100%; height: auto; }}
+    </style>
+</head>
+<body>
+{html_content}
+</body>
+</html>"""
 
-            if result.returncode != 0:
-                # Try without xelatex (fallback to pdflatex)
-                result = subprocess.run(
-                    ["pandoc", temp_input, "-o", str(output_path)],
-                    capture_output=True,
-                    text=True
-                )
-                if result.returncode != 0:
-                    raise ConversionError(
-                        f"Pandoc conversion failed: {result.stderr}"
-                    )
-        finally:
-            if variables and temp_input != str(input_path):
-                os.unlink(temp_input)
+        # Build stylesheets list
+        stylesheets = []
+        if style:
+            style_css = self._get_style_css(style)
+            if style_css:
+                stylesheets.append(CSS(string=style_css))
+
+        # Convert to PDF
+        HTML(string=full_html, base_url=str(input_path.parent)).write_pdf(
+            str(output_path),
+            stylesheets=stylesheets if stylesheets else None
+        )
 
         return output_path
 
@@ -292,7 +295,7 @@ class DocGenerator:
         output_path: str | Path,
         variables: dict[str, Any] | None = None
     ) -> Path:
-        """Convert Markdown to DOCX using Pandoc.
+        """Convert Markdown to DOCX using mistune + python-docx.
 
         Args:
             input_path: Path to input Markdown file
@@ -302,7 +305,10 @@ class DocGenerator:
         Returns:
             Path to the created DOCX file
         """
-        self._check_pandoc()
+        import mistune
+        from docx import Document
+        from docx.shared import Pt, Inches
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
 
         input_path = Path(input_path)
         output_path = Path(output_path)
@@ -317,33 +323,107 @@ class DocGenerator:
                 content, variables, input_path.parent
             )
 
-        # Write to temp file if template was rendered
-        if variables:
-            import tempfile
-            with tempfile.NamedTemporaryFile(
-                mode='w', suffix='.md', delete=False
-            ) as f:
-                f.write(content)
-                temp_input = f.name
-        else:
-            temp_input = str(input_path)
+        # Parse markdown into AST
+        md = mistune.create_markdown(renderer=None)
+        tokens = md(content)
 
-        try:
-            result = subprocess.run(
-                ["pandoc", temp_input, "-o", str(output_path)],
-                capture_output=True,
-                text=True
-            )
+        # Create DOCX document
+        doc = Document()
 
-            if result.returncode != 0:
-                raise ConversionError(
-                    f"Pandoc conversion failed: {result.stderr}"
-                )
-        finally:
-            if variables and temp_input != str(input_path):
-                os.unlink(temp_input)
+        # Process tokens
+        self._process_markdown_tokens(doc, tokens)
+
+        # Save document
+        doc.save(str(output_path))
 
         return output_path
+
+    def _process_markdown_tokens(self, doc, tokens, list_level=0):
+        """Process markdown tokens and add to document.
+
+        Args:
+            doc: python-docx Document
+            tokens: List of mistune tokens
+            list_level: Current list nesting level
+        """
+        from docx.shared import Pt, Inches
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+
+        for token in tokens:
+            token_type = token.get('type')
+
+            if token_type == 'heading':
+                level = token.get('attrs', {}).get('level', 1)
+                text = self._extract_text_from_children(token.get('children', []))
+                heading = doc.add_heading(text, level=level)
+
+            elif token_type == 'paragraph':
+                text = self._extract_text_from_children(token.get('children', []))
+                if text.strip():
+                    doc.add_paragraph(text)
+
+            elif token_type == 'code_block':
+                code = token.get('raw', '')
+                para = doc.add_paragraph()
+                run = para.add_run(code)
+                run.font.name = 'Courier New'
+                run.font.size = Pt(9)
+                para.paragraph_format.left_indent = Inches(0.25)
+
+            elif token_type == 'block_quote':
+                children = token.get('children', [])
+                for child in children:
+                    if child.get('type') == 'paragraph':
+                        text = self._extract_text_from_children(child.get('children', []))
+                        para = doc.add_paragraph(text)
+                        para.paragraph_format.left_indent = Inches(0.5)
+                        para.style = 'Quote' if 'Quote' in [s.name for s in doc.styles] else None
+
+            elif token_type == 'list':
+                ordered = token.get('attrs', {}).get('ordered', False)
+                items = token.get('children', [])
+                for i, item in enumerate(items):
+                    if item.get('type') == 'list_item':
+                        text = self._extract_text_from_children(
+                            item.get('children', [{}])[0].get('children', [])
+                            if item.get('children') and item['children'][0].get('type') == 'paragraph'
+                            else []
+                        )
+                        if ordered:
+                            para = doc.add_paragraph(f"{i+1}. {text}")
+                        else:
+                            para = doc.add_paragraph(text, style='List Bullet')
+
+            elif token_type == 'thematic_break':
+                para = doc.add_paragraph()
+                para.paragraph_format.space_before = Pt(12)
+                para.paragraph_format.space_after = Pt(12)
+                # Add horizontal line
+                run = para.add_run('_' * 50)
+                run.font.color.rgb = None  # Use theme color
+
+    def _extract_text_from_children(self, children):
+        """Extract plain text from token children.
+
+        Args:
+            children: List of child tokens
+
+        Returns:
+            Extracted text string
+        """
+        text_parts = []
+        for child in children:
+            if child.get('type') == 'text':
+                text_parts.append(child.get('raw', ''))
+            elif child.get('type') == 'codespan':
+                text_parts.append(child.get('raw', ''))
+            elif child.get('type') in ('strong', 'emphasis', 'link'):
+                text_parts.append(self._extract_text_from_children(child.get('children', [])))
+            elif child.get('type') == 'softbreak':
+                text_parts.append(' ')
+        return ''.join(text_parts)
 
     def html_to_docx(
         self,
@@ -351,7 +431,7 @@ class DocGenerator:
         output_path: str | Path,
         variables: dict[str, Any] | None = None
     ) -> Path:
-        """Convert HTML to DOCX using Pandoc.
+        """Convert HTML to DOCX using python-docx with HTML parsing.
 
         Args:
             input_path: Path to input HTML file
@@ -361,7 +441,8 @@ class DocGenerator:
         Returns:
             Path to the created DOCX file
         """
-        self._check_pandoc()
+        from docx import Document
+        from docx.shared import Pt, Inches
 
         input_path = Path(input_path)
         output_path = Path(output_path)
@@ -376,33 +457,142 @@ class DocGenerator:
                 content, variables, input_path.parent
             )
 
-        # Write to temp file if template was rendered
-        if variables:
-            import tempfile
-            with tempfile.NamedTemporaryFile(
-                mode='w', suffix='.html', delete=False
-            ) as f:
-                f.write(content)
-                temp_input = f.name
-        else:
-            temp_input = str(input_path)
+        # Create document
+        doc = Document()
 
-        try:
-            result = subprocess.run(
-                ["pandoc", temp_input, "-o", str(output_path)],
-                capture_output=True,
-                text=True
-            )
+        # Parse HTML and convert to DOCX
+        self._parse_html_to_docx(doc, content)
 
-            if result.returncode != 0:
-                raise ConversionError(
-                    f"Pandoc conversion failed: {result.stderr}"
-                )
-        finally:
-            if variables and temp_input != str(input_path):
-                os.unlink(temp_input)
+        # Save document
+        doc.save(str(output_path))
 
         return output_path
+
+    def _parse_html_to_docx(self, doc, html_content):
+        """Parse HTML content and add to document.
+
+        Args:
+            doc: python-docx Document
+            html_content: HTML string
+        """
+        from docx.shared import Pt, Inches
+
+        # Simple HTML to DOCX conversion using regex
+        # Remove script and style tags
+        html_content = re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL | re.IGNORECASE)
+        html_content = re.sub(r'<style[^>]*>.*?</style>', '', html_content, flags=re.DOTALL | re.IGNORECASE)
+
+        # Extract body content if present
+        body_match = re.search(r'<body[^>]*>(.*?)</body>', html_content, flags=re.DOTALL | re.IGNORECASE)
+        if body_match:
+            html_content = body_match.group(1)
+
+        # Process headings
+        for level in range(1, 7):
+            pattern = f'<h{level}[^>]*>(.*?)</h{level}>'
+            html_content = re.sub(
+                pattern,
+                lambda m: f'\n[HEADING{level}]{self._strip_tags(m.group(1))}[/HEADING{level}]\n',
+                html_content,
+                flags=re.DOTALL | re.IGNORECASE
+            )
+
+        # Process paragraphs
+        html_content = re.sub(
+            r'<p[^>]*>(.*?)</p>',
+            lambda m: f'\n[PARA]{self._strip_tags(m.group(1))}[/PARA]\n',
+            html_content,
+            flags=re.DOTALL | re.IGNORECASE
+        )
+
+        # Process list items
+        html_content = re.sub(
+            r'<li[^>]*>(.*?)</li>',
+            lambda m: f'\n[LI]{self._strip_tags(m.group(1))}[/LI]\n',
+            html_content,
+            flags=re.DOTALL | re.IGNORECASE
+        )
+
+        # Process code blocks
+        html_content = re.sub(
+            r'<pre[^>]*>(.*?)</pre>',
+            lambda m: f'\n[CODE]{self._strip_tags(m.group(1))}[/CODE]\n',
+            html_content,
+            flags=re.DOTALL | re.IGNORECASE
+        )
+
+        # Strip remaining tags and normalize whitespace
+        remaining_text = self._strip_tags(html_content)
+
+        # Process the marked content
+        lines = html_content.split('\n')
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Check for marked elements
+            heading_match = re.match(r'\[HEADING(\d)\](.*?)\[/HEADING\d\]', line)
+            if heading_match:
+                level = int(heading_match.group(1))
+                text = heading_match.group(2).strip()
+                if text:
+                    doc.add_heading(text, level=level)
+                continue
+
+            para_match = re.match(r'\[PARA\](.*?)\[/PARA\]', line)
+            if para_match:
+                text = para_match.group(1).strip()
+                if text:
+                    doc.add_paragraph(text)
+                continue
+
+            li_match = re.match(r'\[LI\](.*?)\[/LI\]', line)
+            if li_match:
+                text = li_match.group(1).strip()
+                if text:
+                    doc.add_paragraph(text, style='List Bullet')
+                continue
+
+            code_match = re.match(r'\[CODE\](.*?)\[/CODE\]', line, re.DOTALL)
+            if code_match:
+                text = code_match.group(1).strip()
+                if text:
+                    para = doc.add_paragraph()
+                    run = para.add_run(text)
+                    run.font.name = 'Courier New'
+                    run.font.size = Pt(9)
+                continue
+
+            # Plain text that's not inside markers
+            text = self._strip_tags(line).strip()
+            if text and not text.startswith('['):
+                doc.add_paragraph(text)
+
+    def _strip_tags(self, html):
+        """Remove HTML tags from string.
+
+        Args:
+            html: HTML string
+
+        Returns:
+            Text with tags removed
+        """
+        # Decode HTML entities
+        html = html.replace('&nbsp;', ' ')
+        html = html.replace('&lt;', '<')
+        html = html.replace('&gt;', '>')
+        html = html.replace('&amp;', '&')
+        html = html.replace('&quot;', '"')
+        html = html.replace('&#39;', "'")
+
+        # Remove tags
+        clean = re.sub(r'<[^>]+>', '', html)
+
+        # Normalize whitespace
+        clean = re.sub(r'\s+', ' ', clean)
+
+        return clean.strip()
 
     def list_styles(self) -> list[str]:
         """List available built-in styles.
@@ -434,7 +624,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the argument parser."""
     parser = argparse.ArgumentParser(
         prog="doc_gen",
-        description="Document generation using WeasyPrint and Pandoc",
+        description="Document generation using WeasyPrint and pure Python libraries",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -446,11 +636,11 @@ Examples:
   ./run tool/doc_gen.py pdf template.html -o out.pdf --var client="Acme"
   ./run tool/doc_gen.py pdf template.html -o out.pdf --vars data.json
 
-  # Markdown to DOCX with Pandoc
+  # Markdown to DOCX
   ./run tool/doc_gen.py docx input.md -o output.docx
 
-  # Markdown to PDF with Pandoc
-  ./run tool/doc_gen.py pdf input.md -o output.pdf --engine pandoc
+  # Markdown to PDF
+  ./run tool/doc_gen.py pdf input.md -o output.pdf
 
   # List available styles
   ./run tool/doc_gen.py styles
@@ -465,12 +655,6 @@ Examples:
     pdf_parser.add_argument("-o", "--output", required=True, help="Output PDF file")
     pdf_parser.add_argument("--style", help="Built-in style (quote, report, invoice)")
     pdf_parser.add_argument("--css", help="Custom CSS file path")
-    pdf_parser.add_argument(
-        "--engine",
-        choices=["weasyprint", "pandoc"],
-        default="weasyprint",
-        help="PDF engine (default: weasyprint for HTML, pandoc for Markdown)"
-    )
     pdf_parser.add_argument(
         "--var",
         action="append",
@@ -567,31 +751,27 @@ def main():
         is_markdown = input_ext in ['.md', '.markdown']
 
         if args.command == "pdf":
-            # Determine engine based on input type if not specified
-            engine = args.engine
-            if is_markdown and engine == "weasyprint":
-                engine = "pandoc"  # Default to pandoc for markdown
-
-            if engine == "weasyprint":
+            if is_html:
                 result = gen.html_to_pdf(
                     input_path,
                     output_path,
-                    css_path=args.css,
-                    style=args.style,
+                    css_path=getattr(args, 'css', None),
+                    style=getattr(args, 'style', None),
                     variables=variables
                 )
             else:
+                # Markdown to PDF
                 result = gen.markdown_to_pdf(
                     input_path,
                     output_path,
-                    variables=variables
+                    variables=variables,
+                    style=getattr(args, 'style', None)
                 )
 
             print(json.dumps({
                 "status": "success",
                 "output": str(result),
-                "format": "pdf",
-                "engine": engine
+                "format": "pdf"
             }, indent=2))
 
         elif args.command == "docx":
