@@ -1,0 +1,29 @@
+name: "40hero"
+description: "4.0 Hero Industrial Automation branding"
+
+colors:
+  primary: "#1E3A5F"      # Dark blue
+  accent: "#2E5A8F"       # Medium blue
+  light: "#E8F0F8"        # Light blue background
+  text: "#333333"         # Dark gray text
+  muted: "#4A4A4A"        # Muted dark gray
+  success: "#2E7D32"      # Green for included items
+  warning: "#E65100"      # Orange for exclusions
+
+typography:
+  font_family: "Arial"
+  heading1_size: 28
+  heading2_size: 24
+  heading3_size: 20
+  body_size: 22
+  small_size: 18
+
+spacing:
+  section_before: 400     # Twips before section headers
+  section_after: 200      # Twips after section headers
+  paragraph_after: 120    # Twips after paragraphs
+
+contact:
+  company: "4.0 Hero"
+  tagline: "Industrial Automation Services"
+  email: "trent@40hero.com"
