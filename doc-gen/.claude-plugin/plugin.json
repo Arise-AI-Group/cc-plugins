@@ -1,7 +1,7 @@
 {
   "name": "doc-gen",
-  "description": "Comprehensive document generation, editing, and processing. Create PDFs from HTML/Markdown, edit DOCX with tracked changes and comments via XML manipulation, merge/split/extract from PDFs.",
-  "version": "2.0.0",
+  "description": "Comprehensive document generation, editing, and processing. Create PDFs from HTML/Markdown, edit DOCX with tracked changes and comments via XML manipulation, merge/split/extract from PDFs, fill PDF forms (fillable and non-fillable).",
+  "version": "2.1.0",
   "author": {
     "name": "Arise Group"
   }

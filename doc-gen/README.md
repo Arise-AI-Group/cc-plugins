@@ -24,6 +24,14 @@ Comprehensive document generation, editing, and processing plugin for Claude Cod
 - **Rotate** - Rotate pages by 90/180/270 degrees
 - **Metadata** - Read PDF metadata
 
+### PDF Form Filling
+- **Check Fillable** - Detect if PDF has form fields
+- **Extract Fields** - Get field metadata from fillable PDFs
+- **Fill Fields** - Fill fillable PDF forms
+- **PDF to Images** - Render pages for visual analysis
+- **Extract Structure** - Get text/line positions from non-fillable PDFs
+- **Fill Annotations** - Add text annotations to non-fillable PDFs
+
 ## Prerequisites
 
 ### System Dependencies
@@ -69,6 +77,12 @@ sudo apt install libpango-1.0-0 libpangocairo-1.0-0
 | Split PDF | `./run tool/pdf_tools.py split doc.pdf -o pages/` |
 | Extract PDF text | `./run tool/pdf_tools.py extract-text doc.pdf` |
 | Extract tables | `./run tool/pdf_tools.py extract-tables doc.pdf` |
+| Check if PDF is fillable | `./run tool/forms/check_fillable.py form.pdf` |
+| Extract form fields | `./run tool/forms/extract_fields.py form.pdf -o fields.json` |
+| Fill fillable PDF | `./run tool/forms/fill_fields.py form.pdf values.json -o filled.pdf` |
+| PDF to images | `./run tool/forms/convert_to_images.py doc.pdf images/` |
+| Extract form structure | `./run tool/forms/extract_structure.py form.pdf -o structure.json` |
+| Fill with annotations | `./run tool/forms/fill_annotations.py form.pdf fields.json -o filled.pdf` |
 
 ## Usage Examples
 
@@ -123,6 +137,31 @@ sudo apt install libpango-1.0-0 libpangocairo-1.0-0
 ./run tool/pdf_tools.py rotate document.pdf -o rotated.pdf --angle 90
 ```
 
+### PDF Form Filling
+
+```bash
+# Check if PDF has fillable fields
+./run tool/forms/check_fillable.py form.pdf
+
+# Extract field metadata from fillable PDF
+./run tool/forms/extract_fields.py form.pdf -o fields.json
+
+# Fill a fillable PDF
+./run tool/forms/fill_fields.py form.pdf values.json -o filled.pdf
+
+# For non-fillable PDFs, convert to images first
+./run tool/forms/convert_to_images.py form.pdf images/ --scale 1.5
+
+# Extract text structure for positioning
+./run tool/forms/extract_structure.py form.pdf -o structure.json
+
+# Validate bounding boxes
+./run tool/forms/check_bounding_boxes.py fields.json
+
+# Fill using text annotations
+./run tool/forms/fill_annotations.py form.pdf fields.json -o filled.pdf
+```
+
 ## Built-in Styles
 
 | Style | Use Case |
@@ -143,6 +182,12 @@ All commands output JSON:
 }
 ```
 
+## Examples
+
+The `examples/` directory contains professional document generation templates:
+- `create-proposal.js` - DOCX proposal generator using docx-js (npm)
+- `create-proposal.py` - PDF proposal generator using reportlab (Python)
+
 ## Documentation
 
 See the skill documentation for detailed reference:
@@ -150,3 +195,4 @@ See the skill documentation for detailed reference:
 - `skills/doc-gen/references/docx-editing.md` - Tracked changes and comments
 - `skills/doc-gen/references/docx-xml-reference.md` - OOXML structure
 - `skills/doc-gen/references/pdf-operations.md` - PDF library usage
+- `skills/doc-gen/references/pdf-forms.md` - PDF form filling workflows
