@@ -1,12 +1,33 @@
 """Brand preset loading for document builders.
 
-Presets define colors, typography, spacing, and contact info used by
-docx_builder and pdf_builder to maintain consistent branding.
+DEPRECATED: This module is deprecated. Use tool.styling instead:
+
+    from tool.styling import load_style, StyleResolver
+
+    # Load a style (JSON or YAML)
+    style_config = load_style("professional")
+
+    # Create resolver for the style
+    resolver = StyleResolver(style_config)
+
+    # Get colors, fonts, styles
+    primary_color = resolver.resolve_color("primary")
+    body_font = resolver.get_body_font()
+
+This module is kept for backward compatibility with existing code.
 """
 
+import warnings
 from pathlib import Path
 from typing import Any
 import yaml
+
+# Emit deprecation warning on import
+warnings.warn(
+    "tool.builder_common.presets is deprecated. Use tool.styling instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 def get_presets_dir() -> Path:

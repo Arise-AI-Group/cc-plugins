@@ -18,8 +18,12 @@ This plugin provides four core capabilities:
 
 | Task | Tool | Command |
 |------|------|---------|
+| Create styled DOCX | docx_builder | `./run tool/docx_builder/cli.py create doc.docx --preset professional` |
+| Add heading | docx_builder | `./run tool/docx_builder/cli.py add-heading doc.docx "Title" --level 1` |
+| Add paragraph | docx_builder | `./run tool/docx_builder/cli.py add-paragraph doc.docx "Text..."` |
+| Add table | docx_builder | `./run tool/docx_builder/cli.py add-table doc.docx --data '[["A","B"],["1","2"]]'` |
 | HTML to PDF | doc_gen.py | `./run tool/doc_gen.py pdf input.html -o output.pdf` |
-| Markdown to DOCX | doc_gen.py | `./run tool/doc_gen.py docx input.md -o output.docx` |
+| Markdown to DOCX (basic) | doc_gen.py | `./run tool/doc_gen.py docx input.md -o output.docx` |
 | Extract text from DOCX | docx_tools.py | `./run tool/docx_tools.py extract doc.docx` |
 | Accept tracked changes | docx_tools.py | `./run tool/docx_tools.py accept-changes in.docx out.docx` |
 | DOCX to PDF | docx_tools.py | `./run tool/docx_tools.py to-pdf doc.docx` |
@@ -66,6 +70,65 @@ Built-in styles: `quote`, `report`, `invoice`
 ```
 
 Templates use Jinja2 syntax: `{{ client_name }}`
+
+---
+
+## Styled DOCX Builder
+
+Build professional DOCX documents programmatically with full styling control. Uses a unified style system with JSON presets.
+
+### Built-in Styles
+
+| Style | Description |
+|-------|-------------|
+| `default` | Clean, minimal styling |
+| `professional` | Business documents with blue headers |
+| `proposal` | Quote/proposal with accent highlights |
+| `40hero` | 4.0 Hero Industrial branding |
+
+### Workflow
+
+1. **Create document with style:**
+   ```bash
+   ./run tool/docx_builder/cli.py create output.docx --preset professional
+   ```
+
+2. **Add content elements:**
+   ```bash
+   ./run tool/docx_builder/cli.py add-heading output.docx "Document Title" --level 1
+   ./run tool/docx_builder/cli.py add-paragraph output.docx "Introduction paragraph text..."
+   ./run tool/docx_builder/cli.py add-bullet-list output.docx --items '["Item 1", "Item 2"]'
+   ./run tool/docx_builder/cli.py add-table output.docx --data '[["Header A", "Header B"], ["Row 1", "Data"]]'
+   ```
+
+3. **Finalize (optional):**
+   ```bash
+   ./run tool/docx_builder/cli.py finalize output.docx --cleanup-metadata
+   ```
+
+### Style Overrides
+
+Override style settings per-element:
+
+```bash
+# Custom color on heading
+./run tool/docx_builder/cli.py add-heading doc.docx "Title" --color "#E07A38"
+
+# Custom font
+./run tool/docx_builder/cli.py add-paragraph doc.docx "Text" --font "Calibri" --font-size 12
+```
+
+### Creating Custom Styles
+
+Copy and modify an existing style:
+
+```bash
+cp styles/professional.json styles/my-brand.json
+# Edit colors, fonts, spacing in my-brand.json
+./run tool/docx_builder/cli.py create doc.docx --preset my-brand
+```
+
+For full style configuration schema, see **[docx-style-config.md](references/docx-style-config.md)**.
 
 ---
 
@@ -224,8 +287,9 @@ For complete workflow details, see **[pdf-forms.md](references/pdf-forms.md)**.
 
 ## Reference Documentation
 
-For detailed procedures and XML patterns:
+For detailed procedures and patterns:
 
+- **[docx-style-config.md](references/docx-style-config.md)** - JSON style configuration schema for docx_builder
 - **[docx-editing.md](references/docx-editing.md)** - Tracked changes, comments, unpack/pack workflow
 - **[docx-xml-reference.md](references/docx-xml-reference.md)** - OOXML structure, element patterns, schema compliance
 - **[pdf-operations.md](references/pdf-operations.md)** - Advanced PDF processing, Python library usage

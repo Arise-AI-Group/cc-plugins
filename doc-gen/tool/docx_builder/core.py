@@ -8,10 +8,9 @@ from pathlib import Path
 from typing import Any
 
 from docx import Document
-from docx.shared import Inches, Pt, Twips, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Inches, Pt, RGBColor
 
-from ..builder_common.presets import load_preset, DEFAULT_PRESET, get_typography
+from ..styling import load_style, StyleResolver, DEFAULT_STYLE
 
 
 def _get_metadata_path(doc_path: Path) -> Path:
@@ -46,7 +45,7 @@ def create_document(
 
     Args:
         output_path: Path for the new document
-        preset: Optional preset name (e.g., "40hero", "default")
+        preset: Optional preset/style name (e.g., "40hero", "professional", "default")
         page_size: Page size ("letter" or "a4")
         margins: Optional margins dict {top, right, bottom, left} in inches
 
@@ -55,52 +54,62 @@ def create_document(
     """
     output_path = Path(output_path)
 
-    # Load preset if specified
-    preset_data = None
-    if preset:
-        try:
-            preset_data = load_preset(preset)
-        except FileNotFoundError:
-            return {"success": False, "error": f"Preset '{preset}' not found"}
-    else:
-        preset_data = DEFAULT_PRESET
+    # Load style configuration (supports both JSON styles and legacy YAML presets)
+    style_config = load_style(preset)
+    resolver = StyleResolver(style_config)
 
     # Create document
     doc = Document()
 
     # Set page size
     section = doc.sections[0]
-    if page_size == "letter":
+    page_config = style_config.get("page", {})
+    config_page_size = page_config.get("size", page_size)
+
+    if config_page_size == "letter":
         section.page_width = Inches(8.5)
         section.page_height = Inches(11)
-    elif page_size == "a4":
+    elif config_page_size == "a4":
         section.page_width = Inches(8.27)
         section.page_height = Inches(11.69)
 
-    # Set margins
-    default_margins = {"top": 1.0, "right": 1.0, "bottom": 1.0, "left": 1.0}
-    margins = margins or default_margins
-    section.top_margin = Inches(margins.get("top", 1.0))
-    section.right_margin = Inches(margins.get("right", 1.0))
-    section.bottom_margin = Inches(margins.get("bottom", 1.0))
-    section.left_margin = Inches(margins.get("left", 1.0))
+    # Set margins - prefer explicit parameter, then style config, then defaults
+    if margins:
+        section.top_margin = Inches(margins.get("top", 1.0))
+        section.right_margin = Inches(margins.get("right", 1.0))
+        section.bottom_margin = Inches(margins.get("bottom", 1.0))
+        section.left_margin = Inches(margins.get("left", 1.0))
+    else:
+        # Use margins from style config
+        style_margins = resolver.get_page_margins()
+        section.top_margin = style_margins.get("top", Inches(1.0))
+        section.right_margin = style_margins.get("right", Inches(1.0))
+        section.bottom_margin = style_margins.get("bottom", Inches(1.0))
+        section.left_margin = style_margins.get("left", Inches(1.0))
 
-    # Set default font based on preset
-    font_family = get_typography(preset_data, "font_family")
+    # Set default font based on style
+    body_font = resolver.get_body_font()
     style = doc.styles["Normal"]
-    style.font.name = font_family
-    style.font.size = Pt(11)
+    style.font.name = body_font.get("name", "Arial")
+    style.font.size = Pt(body_font.get("size", 11))
 
     # Save document
     output_path.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(output_path))
 
-    # Save metadata sidecar
+    # Save metadata sidecar with style configuration
     metadata = {
         "preset": preset or "default",
-        "preset_data": preset_data,
-        "page_size": page_size,
-        "margins": margins,
+        "style_config": style_config,
+        # Keep legacy key for backward compatibility
+        "preset_data": style_config,
+        "page_size": config_page_size,
+        "margins": margins or {
+            "top": float(str(style_margins.get("top", Inches(1.0))).replace(" inches", "")) if not margins else margins.get("top", 1.0),
+            "right": 1.0,
+            "bottom": 1.0,
+            "left": 1.0,
+        },
     }
     metadata_path = _get_metadata_path(output_path)
     with open(metadata_path, "w") as f:
@@ -110,7 +119,7 @@ def create_document(
         "success": True,
         "path": str(output_path),
         "preset": preset or "default",
-        "page_size": page_size,
+        "page_size": config_page_size,
     }
 
 
@@ -137,11 +146,15 @@ def load_document(doc_path: str | Path) -> tuple[Document, dict[str, Any]]:
     if metadata_path.exists():
         with open(metadata_path) as f:
             metadata = json.load(f)
+        # Ensure style_config is available (support both old and new formats)
+        if "style_config" not in metadata and "preset_data" in metadata:
+            metadata["style_config"] = metadata["preset_data"]
     else:
         # No metadata, use defaults
         metadata = {
             "preset": "default",
-            "preset_data": DEFAULT_PRESET,
+            "style_config": DEFAULT_STYLE,
+            "preset_data": DEFAULT_STYLE,  # Legacy compatibility
             "page_size": "letter",
             "margins": {"top": 1.0, "right": 1.0, "bottom": 1.0, "left": 1.0},
         }
