@@ -1,20 +1,34 @@
 # doc-gen
 
-Document generation plugin for Claude Code using WeasyPrint and Pandoc.
+Comprehensive document generation, editing, and processing plugin for Claude Code.
 
 ## Features
 
+### Document Generation
 - **HTML to PDF** - High-quality PDF generation with WeasyPrint
 - **Markdown to DOCX** - Word document creation with Pandoc
-- **Markdown to PDF** - Simple PDF generation with Pandoc
-- **Jinja2 Templates** - Variable substitution (`{{client_name}}`, `{{date}}`)
+- **Jinja2 Templates** - Variable substitution for dynamic documents
 - **Pre-built Stylesheets** - Professional styles for quotes, reports, invoices
+
+### DOCX Editing
+- **Unpack/Edit/Pack Workflow** - Edit DOCX files via XML manipulation
+- **Tracked Changes** - Add insertions and deletions with author attribution
+- **Comments** - Add comments and threaded replies
+- **Accept Changes** - Accept all tracked changes programmatically
+
+### PDF Processing
+- **Merge** - Combine multiple PDFs
+- **Split** - Extract pages to individual files
+- **Extract Text** - Get text content with layout preservation
+- **Extract Tables** - Export tables to JSON or CSV
+- **Rotate** - Rotate pages by 90/180/270 degrees
+- **Metadata** - Read PDF metadata
 
 ## Prerequisites
 
 ### System Dependencies
 
-**Pandoc** (required for DOCX and Markdown-to-PDF):
+**Pandoc** (required for DOCX conversion):
 
 ```bash
 # macOS
@@ -22,15 +36,12 @@ brew install pandoc
 
 # Ubuntu/Debian
 sudo apt install pandoc
-
-# Windows
-choco install pandoc
 ```
 
-**WeasyPrint** (installed via pip, but may need system libraries):
+**WeasyPrint dependencies** (for HTML to PDF):
 
 ```bash
-# macOS - if you encounter issues
+# macOS
 brew install pango libffi
 
 # Ubuntu/Debian
@@ -40,53 +51,76 @@ sudo apt install libpango-1.0-0 libpangocairo-1.0-0
 ## Installation
 
 ```bash
-# Run setup to check dependencies and install Python packages
 ./setup.sh
 ```
 
-## Usage
+## Quick Reference
 
-### HTML to PDF
+| Task | Command |
+|------|---------|
+| HTML to PDF | `./run tool/doc_gen.py pdf input.html -o output.pdf` |
+| Markdown to DOCX | `./run tool/doc_gen.py docx input.md -o output.docx` |
+| Extract DOCX text | `./run tool/docx_tools.py extract doc.docx` |
+| Accept tracked changes | `./run tool/docx_tools.py accept-changes in.docx out.docx` |
+| Unpack DOCX for editing | `./run tool/office/unpack.py doc.docx unpacked/` |
+| Repack DOCX | `./run tool/office/pack.py unpacked/ output.docx` |
+| Add comment | `./run tool/office/comment.py unpacked/ 0 "Comment text"` |
+| Merge PDFs | `./run tool/pdf_tools.py merge f1.pdf f2.pdf -o out.pdf` |
+| Split PDF | `./run tool/pdf_tools.py split doc.pdf -o pages/` |
+| Extract PDF text | `./run tool/pdf_tools.py extract-text doc.pdf` |
+| Extract tables | `./run tool/pdf_tools.py extract-tables doc.pdf` |
+
+## Usage Examples
+
+### Document Generation
 
 ```bash
-# Basic conversion
-./run tool/doc_gen.py pdf document.html -o document.pdf
-
-# With built-in style
+# HTML to PDF with style
 ./run tool/doc_gen.py pdf quote.html --style quote -o quote.pdf
 
-# With custom CSS
-./run tool/doc_gen.py pdf document.html --css custom.css -o document.pdf
-```
-
-### Markdown to DOCX
-
-```bash
+# Markdown to DOCX
 ./run tool/doc_gen.py docx document.md -o document.docx
-```
 
-### Markdown to PDF
-
-```bash
-./run tool/doc_gen.py pdf document.md -o document.pdf
-```
-
-### With Template Variables
-
-```bash
-# Single variables
+# With template variables
 ./run tool/doc_gen.py pdf template.html -o output.pdf \
   --var client_name="Acme Corp" \
-  --var date="January 29, 2026"
-
-# From JSON file
-./run tool/doc_gen.py pdf template.html -o output.pdf --vars data.json
+  --var date="January 30, 2025"
 ```
 
-### List Available Styles
+### DOCX Editing
 
 ```bash
-./run tool/doc_gen.py styles
+# Unpack for editing
+./run tool/office/unpack.py document.docx unpacked/
+
+# Edit XML files in unpacked/word/ using the Edit tool
+# Then repack
+./run tool/office/pack.py unpacked/ edited.docx
+
+# Or accept all tracked changes in one command
+./run tool/docx_tools.py accept-changes input.docx clean.docx
+```
+
+### PDF Processing
+
+```bash
+# Merge multiple PDFs
+./run tool/pdf_tools.py merge file1.pdf file2.pdf file3.pdf -o combined.pdf
+
+# Split into individual pages
+./run tool/pdf_tools.py split document.pdf -o pages/
+
+# Extract specific pages
+./run tool/pdf_tools.py split document.pdf -o pages/ --pages "1-3,5,7-10"
+
+# Extract text
+./run tool/pdf_tools.py extract-text document.pdf
+
+# Extract tables to CSV
+./run tool/pdf_tools.py extract-tables document.pdf --format csv -o tables/
+
+# Rotate pages
+./run tool/pdf_tools.py rotate document.pdf -o rotated.pdf --angle 90
 ```
 
 ## Built-in Styles
@@ -97,47 +131,6 @@ sudo apt install libpango-1.0-0 libpangocairo-1.0-0
 | `report` | Business reports and documentation |
 | `invoice` | Invoices with pricing tables |
 
-## Template Variables
-
-Templates use Jinja2 syntax. Example:
-
-```html
-<h1>Quote for {{ client_name }}</h1>
-<p>Date: {{ date }}</p>
-<p>Total: {{ total }}</p>
-```
-
-Pass variables via CLI:
-
-```bash
-./run tool/doc_gen.py pdf template.html -o out.pdf \
-  --var client_name="Acme" \
-  --var date="2026-01-29" \
-  --var total="$5,000"
-```
-
-Or via JSON file:
-
-```json
-{
-  "client_name": "Acme Corp",
-  "date": "2026-01-29",
-  "total": "$5,000"
-}
-```
-
-```bash
-./run tool/doc_gen.py pdf template.html -o out.pdf --vars data.json
-```
-
-## Example Template
-
-See `templates/quote.html` for a complete quote template with:
-- Company and client information
-- Project overview
-- Line items table
-- Terms and conditions
-
 ## Output Format
 
 All commands output JSON:
@@ -145,32 +138,15 @@ All commands output JSON:
 ```json
 {
   "status": "success",
-  "output": "/path/to/output.pdf",
-  "format": "pdf",
-  "engine": "weasyprint"
+  "operation": "merge",
+  "output": "/path/to/output.pdf"
 }
 ```
 
-## Troubleshooting
+## Documentation
 
-### WeasyPrint Installation Issues
-
-If WeasyPrint fails to install, ensure you have the required system libraries:
-
-```bash
-# macOS
-brew install pango cairo libffi gdk-pixbuf
-
-# Ubuntu/Debian
-sudo apt install python3-cffi python3-brotli libpango-1.0-0 libpangocairo-1.0-0
-```
-
-### Pandoc Not Found
-
-Install Pandoc from https://pandoc.org/installing.html or use your package manager.
-
-### PDF Generation Fails
-
-- Check that the input HTML is valid
-- Ensure CSS doesn't have syntax errors
-- For complex layouts, test in a browser first
+See the skill documentation for detailed reference:
+- `skills/doc-gen/SKILL.md` - Overview and quick reference
+- `skills/doc-gen/references/docx-editing.md` - Tracked changes and comments
+- `skills/doc-gen/references/docx-xml-reference.md` - OOXML structure
+- `skills/doc-gen/references/pdf-operations.md` - PDF library usage

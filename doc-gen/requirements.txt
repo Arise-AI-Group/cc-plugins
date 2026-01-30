@@ -1,3 +1,10 @@
 weasyprint>=60.0
 jinja2>=3.0
 python-dotenv
+
+# XML processing for DOCX editing
+lxml>=4.9
+
+# PDF processing
+pypdf>=4.0
+pdfplumber>=0.10
