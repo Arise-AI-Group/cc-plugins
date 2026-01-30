@@ -1,0 +1,2 @@
+python-dotenv
+pandadoc-python-client>=6.2.0
