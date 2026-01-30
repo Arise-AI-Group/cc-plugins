@@ -1,0 +1,8 @@
+{
+  "name": "doc-gen",
+  "description": "Document generation with WeasyPrint (HTML to PDF) and Pandoc (Markdown to DOCX). Includes Jinja2 templating and pre-built stylesheets.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}

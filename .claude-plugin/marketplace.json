@@ -28,6 +28,11 @@
       "description": "Generate diagrams in Draw.io, Mermaid, and ASCII formats from JSON or natural language"
     },
     {
+      "name": "doc-gen",
+      "source": "./doc-gen",
+      "description": "Document generation with WeasyPrint (HTML to PDF) and Pandoc (Markdown to DOCX) - includes Jinja2 templating and pre-built stylesheets"
+    },
+    {
       "name": "infrastructure",
       "source": "./infrastructure",
       "description": "Manage team infrastructure with Cloudflare DNS/tunnels and Dokploy containers"
@@ -106,6 +111,11 @@
       "name": "gmail",
       "source": "./gmail",
       "description": "Gmail and Google Tasks management - read emails, send messages, manage labels, drafts, and tasks"
+    },
+    {
+      "name": "pandadoc",
+      "source": "./pandadoc",
+      "description": "PandaDoc document generation and e-signatures - create contracts, proposals, and send for signing"
     }
   ]
 }

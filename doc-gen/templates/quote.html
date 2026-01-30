@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Quote for {{ client_name | default('Client') }}</title>
+</head>
+<body>
+    <div class="header">
+        <div class="company">
+            <div class="company-name">{{ company_name | default('Your Company') }}</div>
+            <div>{{ company_address | default('123 Business St, City, ST 12345') }}</div>
+            <div>{{ company_email | default('hello@company.com') }}</div>
+            <div>{{ company_phone | default('(555) 123-4567') }}</div>
+        </div>
+    </div>
+
+    <div class="meta">
+        <strong>Quote #:</strong> {{ quote_number | default('Q-001') }}<br>
+        <strong>Date:</strong> {{ date | default('January 1, 2026') }}<br>
+        <strong>Valid Until:</strong> {{ valid_until | default('30 days from issue') }}
+    </div>
+
+    <h1>Project Quote</h1>
+
+    <h2>Prepared For</h2>
+    <p>
+        <strong>{{ client_name | default('Client Name') }}</strong><br>
+        {{ client_company | default('Client Company') }}<br>
+        {{ client_email | default('client@example.com') }}
+    </p>
+
+    <h2>Project Overview</h2>
+    <p>{{ project_description | default('Brief description of the project scope and objectives.') }}</p>
+
+    <h2>Deliverables</h2>
+    <ul>
+        {% if deliverables %}
+            {% for item in deliverables %}
+            <li>{{ item }}</li>
+            {% endfor %}
+        {% else %}
+            <li>Deliverable 1</li>
+            <li>Deliverable 2</li>
+            <li>Deliverable 3</li>
+        {% endif %}
+    </ul>
+
+    <h2>Investment</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th style="text-align: right;">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if line_items %}
+                {% for item in line_items %}
+                <tr>
+                    <td>{{ item.description }}</td>
+                    <td style="text-align: right;">{{ item.amount }}</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td>Project Phase 1</td>
+                    <td style="text-align: right;">$X,XXX</td>
+                </tr>
+                <tr>
+                    <td>Project Phase 2</td>
+                    <td style="text-align: right;">$X,XXX</td>
+                </tr>
+            {% endif %}
+            <tr class="total">
+                <td><strong>Total</strong></td>
+                <td style="text-align: right;"><strong>{{ total | default('$X,XXX') }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Terms & Conditions</h2>
+    <ul>
+        <li>50% deposit required to begin work</li>
+        <li>Remaining balance due upon completion</li>
+        <li>Quote valid for {{ validity_days | default(30) }} days</li>
+    </ul>
+
+    <div class="highlight">
+        <strong>Ready to proceed?</strong><br>
+        Reply to this quote or contact us at {{ company_email | default('hello@company.com') }} to get started.
+    </div>
+
+    <div class="footer">
+        <p>Thank you for considering {{ company_name | default('Your Company') }} for your project.</p>
+    </div>
+</body>
+</html>
