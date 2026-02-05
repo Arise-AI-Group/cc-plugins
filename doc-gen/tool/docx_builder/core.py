@@ -1,6 +1,7 @@
 """Core document lifecycle operations for DOCX builder.
 
 Handles document creation, loading, saving, and metadata management.
+Supports multi-layer styling (defaults < brand < project < overrides).
 """
 
 import json
@@ -10,7 +11,12 @@ from typing import Any
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 
-from ..styling import load_style, StyleResolver, DEFAULT_STYLE
+from ..styling import (
+    load_style,
+    load_layered_style,
+    StyleResolver,
+    DEFAULT_STYLE,
+)
 
 
 def _get_metadata_path(doc_path: Path) -> Path:
@@ -38,24 +44,52 @@ def _parse_color(color_str: str) -> RGBColor:
 def create_document(
     output_path: str | Path,
     preset: str | None = None,
+    brand: str | None = None,
     page_size: str = "letter",
     margins: dict[str, float] | None = None,
+    overrides: dict[str, Any] | None = None,
+    use_project_config: bool = True,
 ) -> dict[str, Any]:
-    """Create a new DOCX document with optional preset.
+    """Create a new DOCX document with layered styling.
+
+    Style resolution (lowest to highest priority):
+    1. Plugin defaults
+    2. Brand style (if specified or default brand)
+    3. Project overrides (.doc-gen/brand.json)
+    4. CLI overrides (passed via overrides parameter)
 
     Args:
         output_path: Path for the new document
-        preset: Optional preset/style name (e.g., "40hero", "professional", "default")
+        preset: Legacy preset name (superseded by brand, kept for compatibility)
+        brand: Brand name from ~/.config/doc-gen/brands/
         page_size: Page size ("letter" or "a4")
         margins: Optional margins dict {top, right, bottom, left} in inches
+        overrides: Style overrides (e.g., {"colors": {"primary": "#FF0000"}})
+        use_project_config: Whether to auto-detect .doc-gen/brand.json
 
     Returns:
         Dict with status and document info
     """
     output_path = Path(output_path)
 
-    # Load style configuration (supports both JSON styles and legacy YAML presets)
-    style_config = load_style(preset)
+    # Determine which loading method to use
+    # If brand is specified, use layered loading
+    # If preset is specified (legacy), use single-file loading
+    # If neither, use layered loading with defaults
+    if brand is not None or (preset is None and overrides is None):
+        # Use new layered loading
+        style_config = load_layered_style(
+            brand=brand,
+            project_path=output_path.parent if use_project_config else None,
+            overrides=overrides,
+            use_project_config=use_project_config,
+        )
+        style_source = brand or "default (layered)"
+    else:
+        # Legacy: use single-file preset loading
+        style_config = load_style(preset)
+        style_source = preset or "default"
+
     resolver = StyleResolver(style_config)
 
     # Create document
@@ -99,7 +133,9 @@ def create_document(
 
     # Save metadata sidecar with style configuration
     metadata = {
+        "brand": brand,
         "preset": preset or "default",
+        "style_source": style_source,
         "style_config": style_config,
         # Keep legacy key for backward compatibility
         "preset_data": style_config,
@@ -118,6 +154,8 @@ def create_document(
     return {
         "success": True,
         "path": str(output_path),
+        "brand": brand,
+        "style_source": style_source,
         "preset": preset or "default",
         "page_size": config_page_size,
     }

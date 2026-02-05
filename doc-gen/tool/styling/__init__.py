@@ -1,17 +1,20 @@
 """Unified styling module for DOCX document generation.
 
 This module provides a unified system for loading style configurations
-(JSON or YAML) and applying them to python-docx elements.
+with multi-layer resolution (defaults < brand < project < CLI).
 
 Main components:
-    - loader: Load styles from JSON (primary) or YAML (legacy)
+    - loader: Load and merge styles from multiple sources
     - resolver: Resolve named colors and get element styles
     - applicators: Apply styles to runs, paragraphs, and cells
 
 Example usage:
-    from tool.styling import load_style, StyleResolver, apply_run_style
+    from tool.styling import load_layered_style, StyleResolver, apply_run_style
 
-    # Load a style configuration
+    # Load style with multi-layer resolution
+    config = load_layered_style(brand="40hero")
+
+    # Or load a simple single-file style
     config = load_style("professional")
 
     # Create a resolver for the style
@@ -28,11 +31,27 @@ Example usage:
 """
 
 from .loader import (
+    # Single-file loading
     load_style,
     list_styles,
     DEFAULT_STYLE,
     STYLES_DIR,
-    PRESETS_DIR,
+    # Multi-layer loading
+    load_layered_style,
+    deep_merge,
+    deep_merge_all,
+    # Brand management
+    list_brands,
+    load_brand_style,
+    get_default_brand,
+    # Project config
+    find_project_config,
+    load_project_style,
+    # Config utilities
+    get_config_dir,
+    ensure_config_dir,
+    get_global_config,
+    CONFIG_DIR,
 )
 
 from .resolver import StyleResolver
@@ -51,12 +70,27 @@ from .applicators import (
 )
 
 __all__ = [
-    # Loader
+    # Single-file loading
     "load_style",
     "list_styles",
     "DEFAULT_STYLE",
     "STYLES_DIR",
-    "PRESETS_DIR",
+    # Multi-layer loading
+    "load_layered_style",
+    "deep_merge",
+    "deep_merge_all",
+    # Brand management
+    "list_brands",
+    "load_brand_style",
+    "get_default_brand",
+    # Project config
+    "find_project_config",
+    "load_project_style",
+    # Config utilities
+    "get_config_dir",
+    "ensure_config_dir",
+    "get_global_config",
+    "CONFIG_DIR",
     # Resolver
     "StyleResolver",
     # Applicators

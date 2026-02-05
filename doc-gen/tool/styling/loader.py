@@ -1,19 +1,23 @@
-"""Style loading with JSON (primary) and YAML (legacy) support.
+"""Style loading with multi-layer resolution support.
 
-Loads style configurations from the styles/ directory (JSON) or
-presets/ directory (YAML) with automatic format detection.
+Supports cascading style hierarchy:
+1. Plugin defaults (built-in)
+2. User/business brands (~/.config/doc-gen/brands/)
+3. Project overrides (.doc-gen/brand.json)
+4. CLI overrides (passed at runtime)
 """
 
 import json
+import os
 from pathlib import Path
 from typing import Any
-
-import yaml
 
 
 # Directory paths
 STYLES_DIR = Path(__file__).parent.parent.parent / "styles"
-PRESETS_DIR = Path(__file__).parent.parent.parent / "presets"  # Legacy YAML
+
+# User config directory (XDG convention)
+CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "doc-gen"
 
 
 # Default style configuration (fallback when no style found)
@@ -95,149 +99,20 @@ DEFAULT_STYLE: dict[str, Any] = {
 }
 
 
-def _convert_yaml_to_unified(yaml_data: dict[str, Any]) -> dict[str, Any]:
-    """Convert legacy YAML preset format to unified JSON format.
-
-    Legacy YAML format:
-        colors: {primary, accent, ...}
-        typography: {font_family, heading1_size (half-points), body_size, ...}
-        spacing: {section_before (twips), section_after, paragraph_after}
-        contact: {company, tagline, email}
-
-    Unified JSON format:
-        colors: {primary, accent, ...}
-        fonts: {heading: {name, bold}, body: {name, size (points)}, ...}
-        styles: {heading1: {font: {...}, spacing: {...}}, ...}
-        tables: {...}
-        lists: {...}
-        contact: {...}
-    """
-    result = {
-        "metadata": {
-            "name": yaml_data.get("name", "converted"),
-            "description": yaml_data.get("description", "Converted from YAML preset")
-        },
-        "page": {
-            "size": "letter",
-            "margins": {"top": "1in", "right": "1in", "bottom": "1in", "left": "1in"}
-        },
-        "colors": yaml_data.get("colors", DEFAULT_STYLE["colors"]).copy(),
-        "fonts": {},
-        "styles": {},
-        "tables": DEFAULT_STYLE["tables"].copy(),
-        "lists": DEFAULT_STYLE["lists"].copy(),
-        "contact": yaml_data.get("contact", {})
-    }
-
-    # Convert typography section
-    typography = yaml_data.get("typography", {})
-    font_family = typography.get("font_family", "Arial")
-
-    # Font definitions
-    result["fonts"] = {
-        "heading": {"name": font_family, "bold": True},
-        "body": {"name": font_family, "size": typography.get("body_size", 22) / 2},  # half-points to points
-        "mono": {"name": "Courier New", "size": typography.get("small_size", 18) / 2}
-    }
-
-    # Convert spacing (twips to points: 1 point = 20 twips)
-    spacing = yaml_data.get("spacing", {})
-    section_before = spacing.get("section_before", 400) / 20
-    section_after = spacing.get("section_after", 200) / 20
-    paragraph_after = spacing.get("paragraph_after", 120) / 20
-
-    # Build styles section
-    primary_color = result["colors"].get("primary", "#333333")
-    text_color = result["colors"].get("text", "#333333")
-    accent_color = result["colors"].get("accent", "#E07A38")
-
-    result["styles"] = {
-        "title": {
-            "font": {
-                "name": font_family,
-                "size": typography.get("heading1_size", 28) / 2,
-                "bold": True,
-                "color": "primary"
-            },
-            "alignment": "center",
-            "spacing": {"after": section_after}
-        },
-        "subtitle": {
-            "font": {
-                "name": font_family,
-                "size": typography.get("heading2_size", 24) / 2,
-                "color": "primary"
-            },
-            "alignment": "center",
-            "spacing": {"after": section_after}
-        },
-        "heading1": {
-            "font": {
-                "name": font_family,
-                "size": typography.get("heading1_size", 28) / 2,
-                "bold": True,
-                "color": "primary"
-            },
-            "spacing": {"before": section_before, "after": section_after}
-        },
-        "heading2": {
-            "font": {
-                "name": font_family,
-                "size": typography.get("heading2_size", 24) / 2,
-                "bold": True,
-                "color": "primary"
-            },
-            "spacing": {"before": section_before * 0.75, "after": section_after}
-        },
-        "heading3": {
-            "font": {
-                "name": font_family,
-                "size": typography.get("heading3_size", 20) / 2,
-                "bold": True,
-                "color": "accent"
-            },
-            "spacing": {"before": section_before * 0.5, "after": section_after}
-        },
-        "body": {
-            "font": {
-                "name": font_family,
-                "size": typography.get("body_size", 22) / 2,
-                "color": "text"
-            },
-            "spacing": {"after": paragraph_after}
-        },
-        "bullet": {
-            "font": {
-                "name": font_family,
-                "size": typography.get("body_size", 22) / 2,
-                "color": "text"
-            },
-            "spacing": {"after": paragraph_after * 0.5}
-        }
-    }
-
-    # Update table header background to use primary color
-    result["tables"]["default"]["headerRow"]["background"] = "primary"
-    result["tables"]["default"]["headerRow"]["font"] = {"color": "#FFFFFF", "bold": True}
-
-    return result
-
-
 def load_style(name_or_path: str | Path | None = None) -> dict[str, Any]:
     """Load a style configuration by name or file path.
 
     Resolution order:
     1. If None, return default style
-    2. If absolute path, load directly (JSON or YAML)
+    2. If absolute path, load directly
     3. Check styles/ for {name}.json
-    4. Check presets/ for {name}.yaml (legacy, auto-converted)
-    5. Return default style with warning
+    4. Return default style with warning
 
     Args:
         name_or_path: Style name (e.g., "professional") or path to config file
 
     Returns:
-        Style configuration dictionary in unified format
+        Style configuration dictionary
     """
     if name_or_path is None:
         return DEFAULT_STYLE.copy()
@@ -248,20 +123,10 @@ def load_style(name_or_path: str | Path | None = None) -> dict[str, Any]:
     if path.is_absolute() or path.exists():
         return _load_file(path)
 
-    # Try styles/ directory (JSON - primary)
+    # Try styles/ directory
     json_path = STYLES_DIR / f"{name_or_path}.json"
     if json_path.exists():
         return _load_file(json_path)
-
-    # Try presets/ directory (YAML - legacy)
-    yaml_path = PRESETS_DIR / f"{name_or_path}.yaml"
-    if yaml_path.exists():
-        return _load_file(yaml_path)
-
-    # Also try .yml extension
-    yml_path = PRESETS_DIR / f"{name_or_path}.yml"
-    if yml_path.exists():
-        return _load_file(yml_path)
 
     # Not found - return default
     print(f"Warning: Style '{name_or_path}' not found, using default")
@@ -269,26 +134,13 @@ def load_style(name_or_path: str | Path | None = None) -> dict[str, Any]:
 
 
 def _load_file(path: Path) -> dict[str, Any]:
-    """Load a style file (JSON or YAML) and return unified format."""
+    """Load a JSON style file and merge with defaults."""
     if not path.exists():
         raise FileNotFoundError(f"Style file not found: {path}")
 
-    suffix = path.suffix.lower()
-
     with open(path, "r", encoding="utf-8") as f:
-        if suffix == ".json":
-            data = json.load(f)
-            # Already in unified format
-            return _merge_with_defaults(data)
-        elif suffix in (".yaml", ".yml"):
-            data = yaml.safe_load(f)
-            # Check if it's legacy format (has 'typography' key)
-            if "typography" in data or "spacing" in data:
-                return _convert_yaml_to_unified(data)
-            # Otherwise assume it's already unified format
-            return _merge_with_defaults(data)
-        else:
-            raise ValueError(f"Unsupported file format: {suffix}")
+        data = json.load(f)
+        return _merge_with_defaults(data)
 
 
 def _merge_with_defaults(style: dict[str, Any]) -> dict[str, Any]:
@@ -312,15 +164,282 @@ def _merge_with_defaults(style: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
+    """Recursively merge overlay dict into base dict.
+
+    - Overlay values override base values
+    - Nested dicts are merged recursively
+    - Lists are replaced (not concatenated)
+
+    Args:
+        base: Base dictionary
+        overlay: Dictionary to merge on top
+
+    Returns:
+        New merged dictionary (does not mutate inputs)
+    """
+    result = base.copy()
+
+    for key, value in overlay.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            # Recursively merge nested dicts
+            result[key] = deep_merge(result[key], value)
+        else:
+            # Replace value
+            result[key] = value
+
+    return result
+
+
+def deep_merge_all(layers: list[dict[str, Any]]) -> dict[str, Any]:
+    """Merge multiple layers into a single config.
+
+    Args:
+        layers: List of config dicts, from lowest to highest priority
+
+    Returns:
+        Merged configuration
+    """
+    if not layers:
+        return {}
+
+    result = layers[0].copy()
+    for layer in layers[1:]:
+        result = deep_merge(result, layer)
+
+    return result
+
+
+def get_config_dir() -> Path:
+    """Get the user config directory path.
+
+    Returns:
+        Path to ~/.config/doc-gen/ (or XDG_CONFIG_HOME/doc-gen/)
+    """
+    return CONFIG_DIR
+
+
+def ensure_config_dir() -> Path:
+    """Ensure the config directory structure exists.
+
+    Creates:
+        ~/.config/doc-gen/
+        ~/.config/doc-gen/brands/
+        ~/.config/doc-gen/cache/
+        ~/.config/doc-gen/config.json (if missing)
+
+    Returns:
+        Path to config directory
+    """
+    config_dir = get_config_dir()
+    brands_dir = config_dir / "brands"
+    cache_dir = config_dir / "cache"
+    config_file = config_dir / "config.json"
+
+    # Create directories
+    config_dir.mkdir(parents=True, exist_ok=True)
+    brands_dir.mkdir(exist_ok=True)
+    cache_dir.mkdir(exist_ok=True)
+
+    # Create default config if missing
+    if not config_file.exists():
+        default_config = {
+            "default_brand": None,
+            "output_formats": ["pdf", "docx"],
+            "auto_open": False
+        }
+        with open(config_file, "w", encoding="utf-8") as f:
+            json.dump(default_config, f, indent=2)
+
+    return config_dir
+
+
+def get_global_config() -> dict[str, Any]:
+    """Load the global config.json.
+
+    Returns:
+        Config dict with default_brand, output_formats, etc.
+    """
+    config_file = get_config_dir() / "config.json"
+
+    if not config_file.exists():
+        return {
+            "default_brand": None,
+            "output_formats": ["pdf", "docx"],
+            "auto_open": False
+        }
+
+    with open(config_file, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def get_default_brand() -> str | None:
+    """Get the default brand name from config.
+
+    Returns:
+        Brand name or None if not set
+    """
+    config = get_global_config()
+    return config.get("default_brand")
+
+
+def list_brands() -> list[dict[str, Any]]:
+    """List all available brands.
+
+    Returns:
+        List of dicts with 'name', 'path', 'description'
+    """
+    brands_dir = get_config_dir() / "brands"
+    brands = []
+
+    if not brands_dir.exists():
+        return brands
+
+    for brand_dir in brands_dir.iterdir():
+        if not brand_dir.is_dir():
+            continue
+
+        brand_file = brand_dir / "brand.json"
+        if not brand_file.exists():
+            continue
+
+        try:
+            with open(brand_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            metadata = data.get("metadata", {})
+            brands.append({
+                "name": brand_dir.name,
+                "path": str(brand_dir),
+                "description": metadata.get("description", "")
+            })
+        except Exception:
+            brands.append({
+                "name": brand_dir.name,
+                "path": str(brand_dir),
+                "description": "(failed to load)"
+            })
+
+    return sorted(brands, key=lambda x: x["name"])
+
+
+def load_brand_style(name: str) -> dict[str, Any] | None:
+    """Load a brand style configuration.
+
+    Args:
+        name: Brand name (directory name under brands/)
+
+    Returns:
+        Style config dict or None if brand not found
+    """
+    brand_file = get_config_dir() / "brands" / name / "brand.json"
+
+    if not brand_file.exists():
+        return None
+
+    with open(brand_file, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def find_project_config(start_path: Path | None = None) -> Path | None:
+    """Find project-level .doc-gen/brand.json by walking up directories.
+
+    Args:
+        start_path: Starting directory (defaults to cwd)
+
+    Returns:
+        Path to brand.json or None if not found
+    """
+    if start_path is None:
+        start_path = Path.cwd()
+
+    current = start_path.resolve()
+
+    # Walk up to root
+    while current != current.parent:
+        config_path = current / ".doc-gen" / "brand.json"
+        if config_path.exists():
+            return config_path
+        current = current.parent
+
+    return None
+
+
+def load_project_style(project_path: Path | None = None) -> dict[str, Any] | None:
+    """Load project-level style overrides.
+
+    Searches for .doc-gen/brand.json in project_path or walks up from cwd.
+
+    Args:
+        project_path: Path to search from (defaults to cwd)
+
+    Returns:
+        Style config dict or None if not found
+    """
+    config_path = find_project_config(project_path)
+
+    if config_path is None:
+        return None
+
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_layered_style(
+    brand: str | None = None,
+    project_path: Path | None = None,
+    overrides: dict[str, Any] | None = None,
+    use_project_config: bool = True
+) -> dict[str, Any]:
+    """Load style with multi-layer resolution.
+
+    Resolution order (lowest to highest priority):
+    1. Plugin defaults
+    2. User brand (if specified, or default brand)
+    3. Project overrides (.doc-gen/brand.json)
+    4. CLI overrides
+
+    Args:
+        brand: Brand name to use (or None for default brand)
+        project_path: Path to search for project config (defaults to cwd)
+        overrides: Additional overrides (e.g., from CLI flags)
+        use_project_config: Whether to auto-detect project config
+
+    Returns:
+        Merged style configuration
+    """
+    layers = []
+
+    # Layer 1: Plugin defaults (always)
+    layers.append(DEFAULT_STYLE.copy())
+
+    # Layer 2: User brand
+    brand_name = brand or get_default_brand()
+    if brand_name:
+        brand_style = load_brand_style(brand_name)
+        if brand_style:
+            layers.append(brand_style)
+
+    # Layer 3: Project overrides
+    if use_project_config:
+        project_style = load_project_style(project_path)
+        if project_style:
+            layers.append(project_style)
+
+    # Layer 4: CLI overrides
+    if overrides:
+        layers.append(overrides)
+
+    return deep_merge_all(layers)
+
+
 def list_styles() -> list[dict[str, Any]]:
     """List all available styles with their metadata.
 
     Returns:
-        List of dicts with 'name', 'path', 'format', and 'description'
+        List of dicts with 'name', 'path', and 'description'
     """
     styles = []
 
-    # JSON styles (primary)
     if STYLES_DIR.exists():
         for json_file in STYLES_DIR.glob("*.json"):
             try:
@@ -330,37 +449,12 @@ def list_styles() -> list[dict[str, Any]]:
                 styles.append({
                     "name": json_file.stem,
                     "path": str(json_file),
-                    "format": "json",
                     "description": metadata.get("description", "")
                 })
             except Exception:
                 styles.append({
                     "name": json_file.stem,
                     "path": str(json_file),
-                    "format": "json",
-                    "description": "(failed to load metadata)"
-                })
-
-    # YAML presets (legacy)
-    if PRESETS_DIR.exists():
-        for yaml_file in PRESETS_DIR.glob("*.yaml"):
-            # Skip if we already have a JSON version
-            if any(s["name"] == yaml_file.stem for s in styles):
-                continue
-            try:
-                with open(yaml_file) as f:
-                    data = yaml.safe_load(f)
-                styles.append({
-                    "name": yaml_file.stem,
-                    "path": str(yaml_file),
-                    "format": "yaml (legacy)",
-                    "description": data.get("description", "")
-                })
-            except Exception:
-                styles.append({
-                    "name": yaml_file.stem,
-                    "path": str(yaml_file),
-                    "format": "yaml (legacy)",
                     "description": "(failed to load metadata)"
                 })
 

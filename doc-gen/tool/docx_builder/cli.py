@@ -5,18 +5,30 @@ Stateless CLI for building professional DOCX documents element by element.
 Each command operates on a document file path, enabling Claude to construct
 documents with full control over formatting and layout.
 
+Supports multi-layer styling:
+- Plugin defaults (built-in)
+- User brands (~/.config/doc-gen/brands/)
+- Project overrides (.doc-gen/brand.json)
+- CLI overrides (--color-*, --font-*)
+
 Usage:
-    # Create new document
-    ./run tool/docx_builder.py create output.docx --preset 40hero
+    # Create with brand
+    ./run tool/docx_builder/cli.py create output.docx --brand 40hero
+
+    # Create with CLI overrides
+    ./run tool/docx_builder/cli.py create output.docx --brand 40hero --color-primary "#FF0000"
+
+    # Legacy: create with preset (still supported)
+    ./run tool/docx_builder/cli.py create output.docx --preset 40hero
 
     # Add content
-    ./run tool/docx_builder.py add-heading output.docx "PROPOSAL" --level 1
-    ./run tool/docx_builder.py add-paragraph output.docx "Introduction text..."
-    ./run tool/docx_builder.py add-bullet-list output.docx --items '["Item 1", "Item 2"]'
-    ./run tool/docx_builder.py add-table output.docx --data '[["A","B"],["1","2"]]' --header-row
+    ./run tool/docx_builder/cli.py add-heading output.docx "PROPOSAL" --level 1
+    ./run tool/docx_builder/cli.py add-paragraph output.docx "Introduction text..."
+    ./run tool/docx_builder/cli.py add-bullet-list output.docx --items '["Item 1", "Item 2"]'
+    ./run tool/docx_builder/cli.py add-table output.docx --data '[["A","B"],["1","2"]]' --header-row
 
-    # Get document info
-    ./run tool/docx_builder.py info output.docx
+    # List brands
+    ./run tool/docx_builder/cli.py list-brands
 """
 
 import argparse
@@ -35,6 +47,41 @@ def json_output(data: dict, output_format: str = "json") -> None:
             print(f"{key}: {value}")
 
 
+def build_overrides_from_args(args) -> dict | None:
+    """Build overrides dict from CLI args.
+
+    Args:
+        args: Parsed argparse namespace
+
+    Returns:
+        Overrides dict or None if no overrides specified
+    """
+    overrides = {}
+
+    # Color overrides
+    colors = {}
+    for color_name in ["primary", "accent", "text", "muted", "success", "danger", "border"]:
+        arg_name = f"color_{color_name}"
+        value = getattr(args, arg_name, None)
+        if value:
+            colors[color_name] = value
+
+    if colors:
+        overrides["colors"] = colors
+
+    # Font overrides
+    fonts = {}
+    if getattr(args, "font_heading", None):
+        fonts["heading"] = {"name": args.font_heading}
+    if getattr(args, "font_body", None):
+        fonts["body"] = {"name": args.font_body}
+
+    if fonts:
+        overrides["fonts"] = fonts
+
+    return overrides if overrides else None
+
+
 def cmd_create(args) -> dict:
     """Create a new document."""
     from .core import create_document
@@ -43,11 +90,17 @@ def cmd_create(args) -> dict:
     if args.margins:
         margins = json.loads(args.margins)
 
+    # Build overrides from CLI flags
+    overrides = build_overrides_from_args(args)
+
     return create_document(
         output_path=args.path,
         preset=args.preset,
+        brand=args.brand,
         page_size=args.page_size,
         margins=margins,
+        overrides=overrides,
+        use_project_config=not getattr(args, "no_project_config", False),
     )
 
 
@@ -145,24 +198,66 @@ def cmd_add_table(args) -> dict:
     )
 
 
-def cmd_list_presets(args) -> dict:
-    """List available presets."""
-    from ..builder_common.presets import list_presets, load_preset
+def cmd_list_brands(args) -> dict:
+    """List available brands."""
+    from ..styling import list_brands, get_global_config
 
-    presets = list_presets()
-    result = {"presets": []}
+    brands = list_brands()
+    default_brand = get_global_config().get("default_brand")
 
-    for name in presets:
-        try:
-            preset_data = load_preset(name)
-            result["presets"].append({
-                "name": name,
-                "description": preset_data.get("description", ""),
-            })
-        except Exception:
-            result["presets"].append({"name": name, "description": ""})
+    # Mark default brand
+    for brand in brands:
+        brand["is_default"] = brand["name"] == default_brand
 
-    return result
+    return {
+        "success": True,
+        "brands": brands,
+        "default_brand": default_brand,
+        "count": len(brands)
+    }
+
+
+def cmd_setup_header_footer(args) -> dict:
+    """Set up header and/or footer for a document."""
+    from .content import setup_header_footer
+    from .core import load_document
+
+    # Load document to get style config
+    _, metadata = load_document(args.path)
+    style_config = metadata.get("style_config", metadata.get("preset_data", {}))
+
+    header_config = None
+    footer_config = None
+
+    if args.from_brand:
+        # Use config from brand
+        header_config = style_config.get("header")
+        footer_config = style_config.get("footer")
+    else:
+        # Build from CLI args
+        if not args.no_header and args.header_text:
+            header_config = {
+                "enabled": True,
+                "text": args.header_text,
+                "position": args.header_position,
+            }
+        elif args.no_header:
+            header_config = {"enabled": False}
+
+        if not args.no_footer:
+            footer_config = {
+                "enabled": True,
+                "text": args.footer_text or "Page {{ page }}",
+                "position": args.footer_position,
+            }
+        elif args.no_footer:
+            footer_config = {"enabled": False}
+
+    return setup_header_footer(
+        doc_path=args.path,
+        header_config=header_config,
+        footer_config=footer_config,
+    )
 
 
 def main():
@@ -182,9 +277,23 @@ def main():
     # create command
     create_parser = subparsers.add_parser("create", help="Create new document")
     create_parser.add_argument("path", help="Output path for document")
-    create_parser.add_argument("--preset", "-p", help="Preset name (e.g., 40hero)")
+    create_parser.add_argument("--brand", "-b", help="Brand name from ~/.config/doc-gen/brands/")
+    create_parser.add_argument("--preset", "-p", help="Legacy preset name (superseded by --brand)")
     create_parser.add_argument("--page-size", default="letter", choices=["letter", "a4"])
     create_parser.add_argument("--margins", help='JSON margins: {"top": 1, "right": 1, ...}')
+    create_parser.add_argument("--no-project-config", action="store_true",
+                               help="Disable auto-detection of .doc-gen/brand.json")
+    # Color overrides
+    create_parser.add_argument("--color-primary", help="Primary color (hex, e.g., #1E3A5F)")
+    create_parser.add_argument("--color-accent", help="Accent color (hex)")
+    create_parser.add_argument("--color-text", help="Text color (hex)")
+    create_parser.add_argument("--color-muted", help="Muted/secondary text color (hex)")
+    create_parser.add_argument("--color-success", help="Success color (hex)")
+    create_parser.add_argument("--color-danger", help="Danger/error color (hex)")
+    create_parser.add_argument("--color-border", help="Border color (hex)")
+    # Font overrides
+    create_parser.add_argument("--font-heading", help="Heading font family")
+    create_parser.add_argument("--font-body", help="Body font family")
     create_parser.set_defaults(func=cmd_create)
 
     # info command
@@ -255,9 +364,25 @@ def main():
     table_parser.add_argument("--style", help='JSON style: {"header_bg": "#1E3A5F", ...}')
     table_parser.set_defaults(func=cmd_add_table)
 
-    # list-presets command
-    presets_parser = subparsers.add_parser("list-presets", help="List available presets")
-    presets_parser.set_defaults(func=cmd_list_presets)
+    # list-brands command
+    brands_parser = subparsers.add_parser("list-brands", help="List available brands")
+    brands_parser.set_defaults(func=cmd_list_brands)
+
+    # setup-header-footer command
+    hf_parser = subparsers.add_parser("setup-header-footer",
+                                       help="Configure document header and footer")
+    hf_parser.add_argument("path", help="Document path")
+    hf_parser.add_argument("--header-text", help="Header text (supports {{ variables }})")
+    hf_parser.add_argument("--header-position", choices=["left", "center", "right"],
+                           default="right", help="Header alignment")
+    hf_parser.add_argument("--no-header", action="store_true", help="Disable header")
+    hf_parser.add_argument("--footer-text", help="Footer text (supports {{ page }})")
+    hf_parser.add_argument("--footer-position", choices=["left", "center", "right"],
+                           default="center", help="Footer alignment")
+    hf_parser.add_argument("--no-footer", action="store_true", help="Disable footer")
+    hf_parser.add_argument("--from-brand", action="store_true",
+                           help="Use header/footer config from document's brand")
+    hf_parser.set_defaults(func=cmd_setup_header_footer)
 
     args = parser.parse_args()
 

@@ -5,8 +5,8 @@ Style configurations define colors, fonts, spacing, and element-specific formatt
 ## Quick Start
 
 ```bash
-# Create document with built-in style
-./run tool/docx_builder/cli.py create doc.docx --preset professional
+# Create document with brand
+./run tool/docx_builder/cli.py create doc.docx --brand mybrand
 
 # Add styled content
 ./run tool/docx_builder/cli.py add-heading doc.docx "Title" --level 1
@@ -22,7 +22,7 @@ Style configurations define colors, fonts, spacing, and element-specific formatt
 | `proposal` | Quote/proposal with accent highlights |
 | `40hero` | 4.0 Hero Industrial branding |
 
-Styles are stored in `styles/*.json` (primary) or `presets/*.yaml` (legacy).
+Styles are stored in `styles/*.json`. User brands are stored in `~/.config/doc-gen/brands/`.
 
 ---
 
@@ -245,14 +245,18 @@ Contact information for branded documents.
 
 ---
 
-## Creating Custom Styles
+## Creating Custom Brands
 
-1. **Copy an existing style:**
+1. **Create a brand from a reference DOCX:**
    ```bash
-   cp styles/professional.json styles/my-brand.json
+   ./run tool/brand_manager.py create mybrand --from-docx reference.docx
    ```
 
-2. **Modify colors:**
+2. **Or create manually and modify colors:**
+   ```bash
+   ./run tool/brand_manager.py create mybrand
+   # Edit ~/.config/doc-gen/brands/mybrand/brand.json
+   ```
    ```json
    "colors": {
      "primary": "#YOUR_BRAND_COLOR",
@@ -260,9 +264,14 @@ Contact information for branded documents.
    }
    ```
 
-3. **Use your style:**
+3. **Use your brand:**
    ```bash
-   ./run tool/docx_builder/cli.py create doc.docx --preset my-brand
+   ./run tool/docx_builder/cli.py create doc.docx --brand mybrand
+   ```
+
+4. **Set as default:**
+   ```bash
+   ./run tool/brand_manager.py set-default mybrand
    ```
 
 ---

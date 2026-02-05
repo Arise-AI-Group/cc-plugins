@@ -1,7 +1,6 @@
 weasyprint>=60.0
 jinja2>=3.0
 python-dotenv
-pyyaml>=6.0
 
 # XML processing for DOCX editing
 lxml>=4.9
