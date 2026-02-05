@@ -279,6 +279,26 @@ class SlackClient:
         self._channel_cache.clear()
         return response.get("channel", {})
 
+    def join_channel(self, channel: str) -> Dict:
+        """Join a public channel."""
+        channel_id = self.resolve_channel(channel)
+        response = self._request_with_retry(self.client.conversations_join, channel=channel_id)
+        return response.get("channel", {})
+
+    def join_all_channels(self) -> Dict[str, bool]:
+        """Join all public channels the bot is not a member of."""
+        channels = self.list_channels(types="public_channel")
+        results = {}
+        for ch in channels:
+            if not ch.get("is_member"):
+                name = ch.get("name", ch.get("id"))
+                try:
+                    self.join_channel(ch["id"])
+                    results[name] = True
+                except Exception as e:
+                    results[name] = False
+        return results
+
     def archive_channel(self, channel: str) -> bool:
         """Archive a channel."""
         channel_id = self.resolve_channel(channel)
@@ -1773,6 +1793,13 @@ def build_parser() -> argparse.ArgumentParser:
     unarchive_parser = channels_sub.add_parser("unarchive", help="Unarchive a channel")
     unarchive_parser.add_argument("channel", help="Channel ID or name")
 
+    # channels join
+    join_parser = channels_sub.add_parser("join", help="Join a public channel")
+    join_parser.add_argument("channel", help="Channel ID or name")
+
+    # channels join-all
+    channels_sub.add_parser("join-all", help="Join all public channels")
+
     # channels info
     info_parser = channels_sub.add_parser("info", help="Get channel info")
     info_parser.add_argument("channel", help="Channel ID or name")
@@ -2033,6 +2060,22 @@ def main():
             elif args.action == "set-purpose":
                 result = client.set_channel_purpose(args.channel, args.purpose)
                 print(f"Set purpose: {result}")
+
+            elif args.action == "join":
+                channel = client.join_channel(args.channel)
+                print(f"Joined channel: #{channel.get('name')}")
+
+            elif args.action == "join-all":
+                results = client.join_all_channels()
+                joined = [k for k, v in results.items() if v]
+                failed = [k for k, v in results.items() if not v]
+                print(f"Joined {len(joined)} channels:")
+                for ch in joined:
+                    print(f"  ✓ #{ch}")
+                if failed:
+                    print(f"\nFailed to join {len(failed)} channels:")
+                    for ch in failed:
+                        print(f"  ✗ #{ch}")
             else:
                 parser.parse_args(["channels", "--help"])
 
