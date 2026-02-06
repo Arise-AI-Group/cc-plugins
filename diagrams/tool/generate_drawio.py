@@ -824,7 +824,7 @@ def main():
         output_path = Path(args.output)
     else:
         title = data.get("title", "diagram").lower().replace(" ", "_")
-        output_path = Path("diagrams") / f"{title}.drawio"
+        output_path = Path("examples") / f"{title}.drawio"
 
     # Ensure directory exists
     output_path.parent.mkdir(parents=True, exist_ok=True)

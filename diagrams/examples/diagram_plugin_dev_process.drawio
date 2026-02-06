@@ -1,0 +1,68 @@
+<mxfile host="Electron" modified="059fe4cd" agent="agentic-diagrams" version="1.0.0">
+  <diagram name="Diagram Plugin Development Process" id="2f76e5f6">
+    <mxGraphModel dx="1306" dy="898" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1490" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="748b023a" value="Style Request" style="shape=mxgraph.bpmn.event;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;perimeter=ellipsePerimeter;outlineConnect=0;aspect=fixed;outline=standard;symbol=message;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="40" y="115" width="50" height="50" as="geometry" />
+</mxCell>
+        <mxCell id="3792ce45" value="Create Style
+System" style="shape=mxgraph.bpmn.task;rectStyle=rounded;size=10;taskMarker=script;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="150" y="100" width="120" height="80" as="geometry" />
+</mxCell>
+        <mxCell id="aa940e74" value="Add Custom
+Shapes" style="shape=mxgraph.bpmn.task;rectStyle=rounded;size=10;taskMarker=manual;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="330" y="100" width="120" height="80" as="geometry" />
+</mxCell>
+        <mxCell id="32b577a3" value="Visual
+Review" style="shape=mxgraph.bpmn.gateway2;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;perimeter=rhombusPerimeter;outlineConnect=0;outline=none;symbol=none;gwType=exclusive;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="510" y="115" width="50" height="50" as="geometry" />
+</mxCell>
+        <mxCell id="692b7d28" value="Study BPMN
+Reference" style="shape=mxgraph.bpmn.task;rectStyle=rounded;size=10;taskMarker=script;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="620" y="100" width="120" height="80" as="geometry" />
+</mxCell>
+        <mxCell id="f2fe29ce" value="Add Stencil
+Shapes" style="shape=mxgraph.bpmn.task;rectStyle=rounded;size=10;taskMarker=service;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="800" y="100" width="120" height="80" as="geometry" />
+</mxCell>
+        <mxCell id="1c0d0e48" value="Refine Dark
+Modern Style" style="shape=mxgraph.bpmn.task;rectStyle=rounded;size=10;taskMarker=manual;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="980" y="100" width="120" height="80" as="geometry" />
+</mxCell>
+        <mxCell id="8796e161" value="Test All
+Templates" style="shape=mxgraph.bpmn.task;rectStyle=rounded;size=10;taskMarker=script;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="1160" y="100" width="120" height="80" as="geometry" />
+</mxCell>
+        <mxCell id="d00a7b5c" value="" style="shape=mxgraph.bpmn.event;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;perimeter=ellipsePerimeter;outlineConnect=0;aspect=fixed;outline=end;symbol=terminate;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="1340" y="115" width="50" height="50" as="geometry" />
+</mxCell>
+        <mxCell id="69c7c4af" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="748b023a" target="3792ce45" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+        <mxCell id="30bd1839" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="3792ce45" target="aa940e74" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+        <mxCell id="7a607420" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="aa940e74" target="32b577a3" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+        <mxCell id="18fcd1d7" value="Not great" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="32b577a3" target="692b7d28" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+        <mxCell id="769d30e0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="692b7d28" target="f2fe29ce" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+        <mxCell id="73cf270a" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="f2fe29ce" target="1c0d0e48" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+        <mxCell id="eafca106" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="1c0d0e48" target="8796e161" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+        <mxCell id="2c9ee1f1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="8796e161" target="d00a7b5c" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

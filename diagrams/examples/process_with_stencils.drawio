@@ -1,0 +1,44 @@
+<mxfile host="Electron" modified="0a0bf366" agent="agentic-diagrams" version="1.0.0">
+  <diagram name="Order Processing" id="622a360f">
+    <mxGraphModel dx="1306" dy="898" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="132473dc" value="Order Received" style="shape=mxgraph.bpmn.event;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;perimeter=ellipsePerimeter;outlineConnect=0;aspect=fixed;outline=standard;symbol=message;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="40" y="115" width="50" height="50" as="geometry" />
+</mxCell>
+        <mxCell id="0de1bfe5" value="Check
+Availability" style="shape=mxgraph.bpmn.task;rectStyle=rounded;size=10;taskMarker=script;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="150" y="100" width="120" height="80" as="geometry" />
+</mxCell>
+        <mxCell id="42562a96" value="In Stock?" style="shape=mxgraph.bpmn.gateway2;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;perimeter=rhombusPerimeter;outlineConnect=0;outline=none;symbol=none;gwType=exclusive;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="330" y="115" width="50" height="50" as="geometry" />
+</mxCell>
+        <mxCell id="4769ace2" value="Pack Items" style="shape=mxgraph.bpmn.task;rectStyle=rounded;size=10;taskMarker=manual;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="440" y="100" width="120" height="80" as="geometry" />
+</mxCell>
+        <mxCell id="308b0af3" value="Ship Order" style="shape=mxgraph.bpmn.task;rectStyle=rounded;size=10;taskMarker=send;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="620" y="100" width="120" height="80" as="geometry" />
+</mxCell>
+        <mxCell id="9e12d9cb" value="" style="shape=mxgraph.bpmn.event;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;perimeter=ellipsePerimeter;outlineConnect=0;aspect=fixed;outline=end;symbol=terminate;fillColor=#ffffff;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+  <mxGeometry x="800" y="115" width="50" height="50" as="geometry" />
+</mxCell>
+        <mxCell id="23a1353a" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="132473dc" target="0de1bfe5" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+        <mxCell id="181f0e16" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="0de1bfe5" target="42562a96" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+        <mxCell id="a6c5951d" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="42562a96" target="4769ace2" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+        <mxCell id="72249a50" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="4769ace2" target="308b0af3" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+        <mxCell id="0494a853" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="308b0af3" target="9e12d9cb" edge="1">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
