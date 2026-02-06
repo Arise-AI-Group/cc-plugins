@@ -23,12 +23,28 @@ This directive applies when the user requests any diagram generation. The defaul
 
 Generate diagrams from structured input or natural language descriptions, outputting to Draw.io, Mermaid, or other formats.
 
+## Style Selection (REQUIRED)
+
+**Before generating any Draw.io diagram, ask the user which style they prefer.** Use AskUserQuestion or ask conversationally. Available styles:
+
+| Style | Description | Best For |
+|-------|-------------|----------|
+| `classic` | Light background, pastel colors | Business docs, printable diagrams |
+| `dark-modern` | Dark background, vibrant saturated colors | Tech diagrams, presentations, screen viewing |
+
+To list available styles programmatically:
+```bash
+./run tool/generate_drawio.py --list-styles
+```
+
+Pass the chosen style via `--style` flag or include `"style"` in the JSON input.
+
 ## Inputs
 
 - **Diagram Type**: The kind of diagram (flowchart, process, hierarchy, swimlane, architecture, etc.)
 - **Title**: Name for the diagram/file
 - **Content**: Structured description of nodes, groups, and connections (or natural language)
-- **Style Preferences** (optional): Color scheme, rounded vs sharp corners, etc.
+- **Style**: Which visual style to use (ask the user if not specified)
 
 ## Process
 
@@ -36,24 +52,26 @@ Generate diagrams from structured input or natural language descriptions, output
 
 1. Validate JSON against schema (nodes, connections, optional groups)
 2. Run appropriate tool:
-   - Draw.io: `./run tool/generate_drawio.py input.json --output diagram.drawio`
+   - Draw.io: `./run tool/generate_drawio.py input.json --style <style> --output diagram.drawio`
    - Mermaid: `./run tool/generate_mermaid.py input.json --output diagram.md`
 3. Return file path
 
 ### For Natural Language Input
 
-1. Parse user description to identify:
+1. Ask the user which style they want (if not already specified)
+2. Parse user description to identify:
    - Diagram type (flowchart, swimlane, hierarchy)
    - Nodes (steps, actions, decisions)
    - Groups/phases (if applicable)
    - Connections and their labels
-2. Generate JSON structure matching the schema
-3. Either pass to tool OR generate XML directly using patterns below
+3. Generate JSON structure matching the schema (include `"style"` field)
+4. Either pass to tool OR generate XML directly using patterns below
 
 ## JSON Input Schema
 
 ```json
 {
+  "style": "classic|dark-modern",
   "type": "flowchart|swimlane",
   "title": "Diagram Title",
   "direction": "TD|LR",
@@ -61,13 +79,31 @@ Generate diagrams from structured input or natural language descriptions, output
     {"id": "g1", "label": "Phase 1", "color": "blue"}
   ],
   "nodes": [
-    {"id": "n1", "label": "Step 1", "group": "g1", "shape": "rectangle|diamond|ellipse"}
+    {"id": "n1", "label": "Step 1", "group": "g1", "shape": "rectangle|diamond|ellipse|cylinder|cloud|document|hexagon|actor|process|parallelogram|callout|task|event|gateway"}
   ],
   "connections": [
     {"from": "n1", "to": "n2", "label": "Yes", "style": "solid|dashed"}
   ]
 }
 ```
+
+**Node shapes:**
+- `rectangle` - Standard box (default)
+- `diamond` - Decision point
+- `ellipse` - Start/end terminal
+- `cylinder` - Database or data store
+- `cloud` - Cloud services
+- `document` - Files and documents
+- `hexagon` - Microservices, modules
+- `actor` - Users/people (stick figure)
+- `process` - Processing steps (side bars)
+- `parallelogram` - I/O operations
+- `callout` - Annotations and notes
+
+**BPMN stencil shapes** (from Draw.io's built-in mxgraph.bpmn library):
+- `task` - BPMN task with built-in marker. Add `"marker"`: `script`, `send`, `manual`, `service`, `user`, `abstract`
+- `event` - BPMN event circle with symbol. Add `"symbol"`: `message`, `timer`, `error`, `conditional`, `terminate`, `general`. Add `"outline"`: `standard`, `boundInt`, `end`, `throwing`
+- `gateway` - BPMN gateway diamond. Add `"gateway_type"`: `exclusive`, `parallel`, `inclusive`
 
 ## Outputs
 
@@ -146,17 +182,32 @@ Draw.io files are XML with this structure:
 
 ---
 
-## Default Color Palette
+## Color Palette
 
-| Purpose | Fill Color | Stroke Color | Use Case |
-|---------|------------|--------------|----------|
-| Blue | `#dae8fc` | `#6c8ebf` | Phase 1, Primary, Acquire |
-| Green | `#d5e8d4` | `#82b366` | Phase 2, Success, Propose |
-| Orange | `#ffe6cc` | `#d79b00` | Phase 3, Warning, Deliver |
-| Red | `#f8cecc` | `#b85450` | Phase 4, Error, Close |
-| Purple | `#e1d5e7` | `#9673a6` | Loops, Cycles, Special |
-| Gray | `#f5f5f5` | `#666666` | Neutral, Connectors |
-| White | `#ffffff` | (inherit) | Child nodes in groups |
+Colors are defined per style in `styles/*.json`. Each color name (blue, green, orange, etc.) maps to fill, stroke, and font colors appropriate for that style's background.
+
+**Classic style** (light background, pastel fills):
+
+| Name | Fill | Stroke | Use Case |
+|------|------|--------|----------|
+| blue | `#dae8fc` | `#6c8ebf` | Phase 1, Primary |
+| green | `#d5e8d4` | `#82b366` | Phase 2, Success |
+| orange | `#ffe6cc` | `#d79b00` | Phase 3, Warning |
+| red | `#f8cecc` | `#b85450` | Phase 4, Error |
+| purple | `#e1d5e7` | `#9673a6` | Loops, Cycles |
+| gray | `#f5f5f5` | `#666666` | Neutral |
+
+**Dark Modern style** (dark background, vibrant saturated fills with white text):
+
+| Name | Fill | Stroke | Use Case |
+|------|------|--------|----------|
+| blue | `#2196F3` | `#1565C0` | Primary, APIs |
+| green | `#4CAF50` | `#2E7D32` | Success, Active |
+| orange | `#FF9800` | `#E65100` | Functions, Handlers |
+| red | `#F44336` | `#C62828` | Errors, Alerts |
+| charcoal | `#37474F` | `#263238` | Data stores, Databases |
+| teal | `#009688` | `#00695C` | Services, Integrations |
+| amber | `#FFC107` | `#FF8F00` | Warnings (dark text) |
 
 ---
 
@@ -192,10 +243,20 @@ Draw.io files are XML with this structure:
 **Positioning:**
 - Grid size: 10px (align to grid)
 - Standard node: 200w x 40h
-- Group/swimlane: 240w x 200h
-- Horizontal spacing between groups: 40px gap
-- Vertical spacing within groups: 10px gap
-- Canvas default: 1200w x 800h
+- BPMN task: 120w x 80h, event: 50x50, gateway: 50x50
+- Group/swimlane: 280w x auto-height (adjusts to content)
+- Horizontal spacing between groups: 60px gap
+- Vertical spacing within groups: 20px gap
+- Canvas default: 1200w x 800h (expands for larger diagrams)
+
+**Auto-centering:** Nodes are automatically centered within their containers:
+- In swimlanes: nodes center horizontally within the group width
+- In LR flowcharts: nodes center vertically on a shared baseline
+- In TD flowcharts: nodes center horizontally relative to the widest node
+
+**Bottom-label shapes:** Event, gateway, and actor shapes render their labels below the shape body (via `verticalLabelPosition=bottom`). The layout engine adds 25px extra vertical padding after these shapes to prevent labels from overlapping the next node.
+
+**Swimlane height equalization:** All groups in a swimlane diagram are set to the same height (the tallest group's height) for uniform appearance.
 
 **Hierarchy:**
 - `id="0"` - Root (always present)
@@ -285,6 +346,28 @@ flowchart LR
 }
 ```
 
+**BPMN Process (with stencil shapes):**
+```json
+{
+  "type": "flowchart",
+  "title": "Order Processing",
+  "direction": "LR",
+  "nodes": [
+    {"id": "start", "label": "Order Received", "shape": "event", "symbol": "message"},
+    {"id": "check", "label": "Check Availability", "shape": "task", "marker": "script"},
+    {"id": "decide", "label": "In Stock?", "shape": "gateway", "gateway_type": "exclusive"},
+    {"id": "pack", "label": "Pack Items", "shape": "task", "marker": "manual"},
+    {"id": "done", "label": "", "shape": "event", "symbol": "terminate", "outline": "end"}
+  ],
+  "connections": [
+    {"from": "start", "to": "check"},
+    {"from": "check", "to": "decide"},
+    {"from": "decide", "to": "pack", "label": "Yes"},
+    {"from": "pack", "to": "done"}
+  ]
+}
+```
+
 ---
 
 ## Learnings & Edge Cases
@@ -295,4 +378,12 @@ flowchart LR
 - Child elements in groups use coordinates relative to the group's origin, not the canvas
 - Connector `source` and `target` must reference existing cell IDs
 - For arrows that need to wrap around (like cycle/loop arrows), use explicit `<Array as="points">` waypoints
+- **Connector overlap fix:** Small node gaps (10px) cause connectors to route through adjacent nodes. The layout engine uses 20px gaps plus 25px extra padding for bottom-label shapes (event, gateway, actor) to give connectors room to route cleanly
+- **Node centering:** Fixed-position nodes (e.g., all at x=20) in wide swimlanes create cramped layouts. The engine now centers nodes horizontally within groups based on the node's width vs group width
+- **Swimlane uniformity:** All swimlane groups are equalized to the tallest group height so the diagram looks consistent
+- **Smart edge routing:** Draw.io's orthogonal edge router doesn't avoid nodes in different parent groups. The engine handles three routing scenarios:
+  - *Intra-group edges*: parent set to the group cell so Draw.io avoids sibling nodes
+  - *Forward cross-group edges*: exit right (`exitX=1;exitY=0.5`), enter left (`entryX=0;entryY=0.5`) to route through gaps between swimlanes
+  - *Backward cross-group edges* (loops/retries): exit bottom, enter bottom, with explicit waypoints that route below all swimlanes to avoid cutting through intermediate groups
+  - *Intra-group skip-node edges*: when a connection skips over intermediate nodes (e.g., gateway → node C, bypassing node B between them), waypoints route the connector to the right side of the group to avoid cutting through obstacles
 

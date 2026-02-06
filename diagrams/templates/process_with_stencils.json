@@ -1,0 +1,21 @@
+{
+  "style": "classic",
+  "type": "flowchart",
+  "title": "Order Processing",
+  "direction": "LR",
+  "nodes": [
+    {"id": "start", "label": "Order Received", "shape": "event", "symbol": "message"},
+    {"id": "check", "label": "Check\nAvailability", "shape": "task", "marker": "script"},
+    {"id": "decide", "label": "In Stock?", "shape": "gateway", "gateway_type": "exclusive"},
+    {"id": "pack", "label": "Pack Items", "shape": "task", "marker": "manual"},
+    {"id": "ship", "label": "Ship Order", "shape": "task", "marker": "send"},
+    {"id": "done", "label": "", "shape": "event", "symbol": "terminate", "outline": "end"}
+  ],
+  "connections": [
+    {"from": "start", "to": "check"},
+    {"from": "check", "to": "decide"},
+    {"from": "decide", "to": "pack", "label": "Yes"},
+    {"from": "pack", "to": "ship"},
+    {"from": "ship", "to": "done"}
+  ]
+}

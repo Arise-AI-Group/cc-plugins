@@ -1,0 +1,27 @@
+{
+  "style": "classic",
+  "type": "flowchart",
+  "title": "Diagram Plugin Development Process",
+  "direction": "LR",
+  "nodes": [
+    {"id": "start", "label": "Style Request", "shape": "event", "symbol": "message"},
+    {"id": "create_styles", "label": "Create Style\nSystem", "shape": "task", "marker": "script"},
+    {"id": "add_shapes", "label": "Add Custom\nShapes", "shape": "task", "marker": "manual"},
+    {"id": "review", "label": "Visual\nReview", "shape": "gateway", "gateway_type": "exclusive"},
+    {"id": "study_bpmn", "label": "Study BPMN\nReference", "shape": "task", "marker": "script"},
+    {"id": "add_stencils", "label": "Add Stencil\nShapes", "shape": "task", "marker": "service"},
+    {"id": "refine", "label": "Refine Dark\nModern Style", "shape": "task", "marker": "manual"},
+    {"id": "test", "label": "Test All\nTemplates", "shape": "task", "marker": "script"},
+    {"id": "done", "label": "", "shape": "event", "symbol": "terminate", "outline": "end"}
+  ],
+  "connections": [
+    {"from": "start", "to": "create_styles"},
+    {"from": "create_styles", "to": "add_shapes"},
+    {"from": "add_shapes", "to": "review"},
+    {"from": "review", "to": "study_bpmn", "label": "Not great"},
+    {"from": "study_bpmn", "to": "add_stencils"},
+    {"from": "add_stencils", "to": "refine"},
+    {"from": "refine", "to": "test"},
+    {"from": "test", "to": "done"}
+  ]
+}

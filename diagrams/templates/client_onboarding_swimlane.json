@@ -1,0 +1,47 @@
+{
+  "style": "dark-modern",
+  "type": "swimlane",
+  "title": "Client Onboarding Process",
+  "groups": [
+    {"id": "intake", "label": "INTAKE", "color": "blue"},
+    {"id": "setup", "label": "SETUP", "color": "teal"},
+    {"id": "config", "label": "CONFIGURE", "color": "orange"},
+    {"id": "verify", "label": "VERIFY", "color": "green"},
+    {"id": "launch", "label": "LAUNCH", "color": "purple"}
+  ],
+  "nodes": [
+    {"id": "lead", "label": "Lead Received", "shape": "event", "symbol": "message", "group": "intake"},
+    {"id": "qualify", "label": "Qualify\nLead", "shape": "task", "marker": "script", "group": "intake"},
+    {"id": "proposal", "label": "Send\nProposal", "shape": "task", "marker": "send", "group": "intake"},
+
+    {"id": "signed", "label": "Contract\nSigned", "shape": "event", "symbol": "message", "group": "setup"},
+    {"id": "accounts", "label": "Create\nAccounts", "shape": "task", "marker": "service", "group": "setup"},
+    {"id": "channels", "label": "Setup Slack\nChannels", "shape": "task", "marker": "service", "group": "setup"},
+
+    {"id": "scope", "label": "Scope\nReview", "shape": "gateway", "gateway_type": "exclusive", "group": "config"},
+    {"id": "infra", "label": "Provision\nInfrastructure", "shape": "task", "marker": "script", "group": "config"},
+    {"id": "dns", "label": "Configure\nDNS", "shape": "task", "marker": "manual", "group": "config"},
+
+    {"id": "qa", "label": "QA\nChecklist", "shape": "task", "marker": "script", "group": "verify"},
+    {"id": "pass", "label": "QA\nPassed?", "shape": "gateway", "gateway_type": "exclusive", "group": "verify"},
+
+    {"id": "handoff", "label": "Client\nHandoff", "shape": "task", "marker": "user", "group": "launch"},
+    {"id": "done", "label": "", "shape": "event", "symbol": "terminate", "outline": "end", "group": "launch"}
+  ],
+  "connections": [
+    {"from": "lead", "to": "qualify"},
+    {"from": "qualify", "to": "proposal"},
+    {"from": "proposal", "to": "signed"},
+    {"from": "signed", "to": "accounts"},
+    {"from": "accounts", "to": "channels"},
+    {"from": "channels", "to": "scope"},
+    {"from": "scope", "to": "infra", "label": "Standard"},
+    {"from": "scope", "to": "dns", "label": "Custom"},
+    {"from": "infra", "to": "qa"},
+    {"from": "dns", "to": "qa"},
+    {"from": "qa", "to": "pass"},
+    {"from": "pass", "to": "handoff", "label": "Yes"},
+    {"from": "pass", "to": "infra", "label": "No", "style": "dashed"},
+    {"from": "handoff", "to": "done"}
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "name": "Dark Modern",
+  "description": "Black background with vibrant colors - modern tech aesthetic",
+  "canvas": {
+    "background": "#000000",
+    "shadow": false
+  },
+  "palette": {
+    "blue":     {"fill": "#1565c0", "stroke": "#42a5f5", "font": "#ffffff"},
+    "green":    {"fill": "#2e7d32", "stroke": "#66bb6a", "font": "#ffffff"},
+    "orange":   {"fill": "#e65100", "stroke": "#ffa726", "font": "#ffffff"},
+    "red":      {"fill": "#c62828", "stroke": "#ef5350", "font": "#ffffff"},
+    "purple":   {"fill": "#6a1b9a", "stroke": "#ab47bc", "font": "#ffffff"},
+    "gray":     {"fill": "#212121", "stroke": "#616161", "font": "#e0e0e0"},
+    "white":    {"fill": "#1a1a1a", "stroke": "#424242", "font": "#e0e0e0"},
+    "charcoal": {"fill": "#0d0d0d", "stroke": "#333333", "font": "#bdbdbd"},
+    "teal":     {"fill": "#00695c", "stroke": "#26a69a", "font": "#ffffff"},
+    "amber":    {"fill": "#ff8f00", "stroke": "#ffc107", "font": "#000000"}
+  },
+  "defaults": {
+    "node_font_size": 12,
+    "node_font_style": 0,
+    "node_stroke_width": 1.5,
+    "node_shadow": false,
+    "arc_size": 8,
+    "group_font_size": 13,
+    "edge_color": "#90a4ae",
+    "edge_width": 1.5,
+    "edge_label_color": "#cfd8dc",
+    "edge_label_bg": "#000000",
+    "rounded": true
+  }
+}

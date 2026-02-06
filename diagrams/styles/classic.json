@@ -1,0 +1,24 @@
+{
+  "name": "Classic",
+  "description": "Light background with pastel colors - clean and professional",
+  "canvas": {
+    "background": "#ffffff",
+    "shadow": false
+  },
+  "palette": {
+    "blue":   {"fill": "#dae8fc", "stroke": "#6c8ebf", "font": "#333333"},
+    "green":  {"fill": "#d5e8d4", "stroke": "#82b366", "font": "#333333"},
+    "orange": {"fill": "#ffe6cc", "stroke": "#d79b00", "font": "#333333"},
+    "red":    {"fill": "#f8cecc", "stroke": "#b85450", "font": "#333333"},
+    "purple": {"fill": "#e1d5e7", "stroke": "#9673a6", "font": "#333333"},
+    "gray":   {"fill": "#f5f5f5", "stroke": "#666666", "font": "#333333"},
+    "white":  {"fill": "#ffffff", "stroke": "#666666", "font": "#333333"}
+  },
+  "defaults": {
+    "node_font_size": 12,
+    "group_font_size": 14,
+    "edge_color": "#666666",
+    "edge_width": 2,
+    "rounded": true
+  }
+}
