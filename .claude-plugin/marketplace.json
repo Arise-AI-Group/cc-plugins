@@ -116,6 +116,16 @@
       "name": "pandadoc",
       "source": "./pandadoc",
       "description": "PandaDoc document generation and e-signatures - create contracts, proposals, and send for signing"
+    },
+    {
+      "name": "video-sop",
+      "source": "./video-sop",
+      "description": "Screen recording analysis - convert video walkthroughs into structured SOPs using Claude vision"
+    },
+    {
+      "name": "activitywatch",
+      "source": "./activitywatch",
+      "description": "Time tracking analysis and reporting via ActivityWatch - app usage, productivity, project tracking, and shareable reports"
     }
   ]
 }

@@ -1,0 +1,8 @@
+{
+  "name": "video-sop",
+  "description": "Screen recording analysis - convert video walkthroughs into structured SOPs using Claude vision",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}

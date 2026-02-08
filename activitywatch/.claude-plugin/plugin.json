@@ -1,0 +1,8 @@
+{
+  "name": "activitywatch",
+  "description": "Time tracking analysis, reporting, and project attribution via ActivityWatch",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}
