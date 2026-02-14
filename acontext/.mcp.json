@@ -1,0 +1,7 @@
+{
+  "acontext": {
+    "command": "${CLAUDE_PLUGIN_ROOT}/run",
+    "args": ["-m", "tool.mcp_server"],
+    "cwd": "${CLAUDE_PLUGIN_ROOT}"
+  }
+}
