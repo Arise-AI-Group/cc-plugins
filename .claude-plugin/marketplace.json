@@ -126,6 +126,11 @@
       "name": "activitywatch",
       "source": "./activitywatch",
       "description": "Time tracking analysis and reporting via ActivityWatch - app usage, productivity, project tracking, and shareable reports"
+    },
+    {
+      "name": "acontext",
+      "source": "./acontext",
+      "description": "AContext context data platform - sessions, virtual disk, agent skills, and sandboxes for AI-powered context management"
     }
   ]
 }
