@@ -1,0 +1,8 @@
+{
+  "name": "youtube",
+  "description": "YouTube video transcription - get transcripts and available languages from YouTube videos without an API key",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}
