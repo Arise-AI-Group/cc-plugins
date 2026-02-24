@@ -1,0 +1,8 @@
+{
+  "name": "unipile",
+  "description": "LinkedIn automation via Unipile - messaging, profiles, connections, posts, comments, and search",
+  "version": "1.0.0",
+  "author": {
+    "name": "Arise Group"
+  }
+}

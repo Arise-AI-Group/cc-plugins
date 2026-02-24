@@ -8,16 +8,6 @@
   },
   "plugins": [
     {
-      "name": "core",
-      "source": "./core",
-      "description": "Shared skills and utilities - setup, configuration, and common workflows"
-    },
-    {
-      "name": "client-onboarding",
-      "source": "./client-onboarding",
-      "description": "Set up Slack channels and resources for new clients"
-    },
-    {
       "name": "demo-deploy",
       "source": "./demo-deploy",
       "description": "Deploy demo applications with GitHub integration and Traefik routing"
@@ -28,11 +18,6 @@
       "description": "Generate diagrams in Draw.io, Mermaid, and ASCII formats from JSON or natural language"
     },
     {
-      "name": "doc-gen",
-      "source": "./doc-gen",
-      "description": "Document generation with WeasyPrint (HTML to PDF) and Pandoc (Markdown to DOCX) - includes Jinja2 templating and pre-built stylesheets"
-    },
-    {
       "name": "infrastructure",
       "source": "./infrastructure",
       "description": "Manage team infrastructure with Cloudflare DNS/tunnels and Dokploy containers"
@@ -41,11 +26,6 @@
       "name": "leads",
       "source": "./leads",
       "description": "Scrape and verify sales leads via Apify, upload to Google Sheets"
-    },
-    {
-      "name": "md-export",
-      "source": "./md-export",
-      "description": "Export markdown to Google Docs and Word documents with Mermaid diagram rendering"
     },
     {
       "name": "n8n",
@@ -113,11 +93,6 @@
       "description": "Gmail and Google Tasks management - read emails, send messages, manage labels, drafts, and tasks"
     },
     {
-      "name": "pandadoc",
-      "source": "./pandadoc",
-      "description": "PandaDoc document generation and e-signatures - create contracts, proposals, and send for signing"
-    },
-    {
       "name": "video-sop",
       "source": "./video-sop",
       "description": "Screen recording analysis - convert video walkthroughs into structured SOPs using Claude vision"
@@ -128,9 +103,9 @@
       "description": "Time tracking analysis and reporting via ActivityWatch - app usage, productivity, project tracking, and shareable reports"
     },
     {
-      "name": "acontext",
-      "source": "./acontext",
-      "description": "AContext context data platform - sessions, virtual disk, agent skills, and sandboxes for AI-powered context management"
+      "name": "unipile",
+      "source": "./unipile",
+      "description": "LinkedIn automation via Unipile - messaging, profiles, connections, posts, comments, and search"
     }
   ]
 }

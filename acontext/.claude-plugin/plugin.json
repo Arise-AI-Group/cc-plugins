@@ -1,8 +1,0 @@
-{
-  "name": "acontext",
-  "description": "AContext context data platform - sessions, virtual disk, agent skills, and sandboxes for AI-powered context management",
-  "version": "1.0.0",
-  "author": {
-    "name": "Arise Group"
-  }
-}

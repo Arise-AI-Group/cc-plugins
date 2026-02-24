@@ -1,8 +1,0 @@
-{
-  "name": "pandadoc",
-  "description": "PandaDoc document generation and e-signatures - create contracts, proposals, and send for signing",
-  "version": "1.0.0",
-  "author": {
-    "name": "Arise Group"
-  }
-}

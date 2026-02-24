@@ -1,8 +1,0 @@
-{
-  "name": "client-onboarding",
-  "description": "Set up Slack channels and resources for new clients",
-  "version": "1.3.0",
-  "author": {
-    "name": "Arise Group"
-  }
-}
